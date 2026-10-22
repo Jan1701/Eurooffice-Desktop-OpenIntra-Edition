@@ -1,0 +1,233 @@
+From dca48fd71b5a1f91988d9bc34ea298d01e231eae Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
+Date: Sun, 4 Oct 2026 20:28:25 +0200
+Subject: [PATCH 3/4] =?UTF-8?q?OpenIntra=20Edition:=20Einstiege=20f=C3=BCr?=
+ =?UTF-8?q?=20neue=20PDF-Formulare=20entfernen?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Formulare kommen künftig aus OpenIntraPDF, nicht mehr aus Euro-Office.
+Entfernt bzw. abgeschaltet werden alle Wege, ein neues PDF-Formular
+anzulegen:
+
+- Startseite: Kachel "PDF" unter "Neu"
+- Vorlagen-Galerie: Bereich "PDF", lokale und Online-PDF-Vorlagen
+- Startmenü: Schnellaktion "Neues PDF-Formular" (NewForm)
+- Dateimanager-Vorlagen (--new-document-templates): kein new.pdf mehr
+- Reiter-Kontextmenü "Neu" im PDF-Betrachter
+- --new:form (Kommandozeile, alte Starter) und create:new form werden
+  ignoriert
+
+XPS und DjVu öffnet weiter der eingebaute Betrachter (der pdfeditor
+bleibt dafür im Paket). Bestehende .docxf/.oform-Dateien lassen sich
+weiter öffnen.
+
+Teil des Patchsatzes der Euro-Office OpenIntra Edition,
+gegen desktop-apps 6d84c544 (DesktopEditors 77da4ef).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01JRpahNJ1WRWocp97RtmQ7Q
+---
+ common/loginpage/src/panelrecent.js           | 12 -----
+ common/loginpage/src/panels.js                |  1 -
+ common/loginpage/src/paneltemplates.js        |  5 +-
+ .../common/linux/desktopeditors.desktop.m4    | 47 +------------------
+ package/common/linux/desktopeditors.sh.m4     |  1 -
+ .../src/cascapplicationmanagerwrapper.cpp     |  3 ++
+ .../cascapplicationmanagerwrapper_private.h   |  3 ++
+ win-linux/src/windows/cmainwindow.cpp         |  4 +-
+ 8 files changed, 12 insertions(+), 64 deletions(-)
+
+diff --git a/common/loginpage/src/panelrecent.js b/common/loginpage/src/panelrecent.js
+index ac3fe1c60..991cd3f1f 100755
+--- a/common/loginpage/src/panelrecent.js
++++ b/common/loginpage/src/panelrecent.js
+@@ -711,18 +711,6 @@
+                                 bgColorWinXP: '#f36700',
+                             },
+                             icon: '#pptx-big',
+-                        },
+-                        {
+-                            id: 'form',
+-                            title: utils.Lang.newForm,
+-                            langKey: 'newForm',
+-                            formatLabel: {
+-                                value: 'PDF',
+-                                gradientColorStart: '#F36653',
+-                                gradientColorEnd: '#D2402D',
+-                                bgColorWinXP: '#e54d39',
+-                            },
+-                            icon: '#pdf-big',
+                         }
+                     ],
+                     onDocumentSelect: (docType) => {
+diff --git a/common/loginpage/src/panels.js b/common/loginpage/src/panels.js
+index c6c411889..7e25ee4bc 100644
+--- a/common/loginpage/src/panels.js
++++ b/common/loginpage/src/panels.js
+@@ -294,7 +294,6 @@ function onNewFileClick(e) {
+     case 'new:docx': t = 'word'; break;
+     case 'new:xlsx': t = 'cell'; break;
+     case 'new:pptx': t = 'slide'; break;
+-    case 'new:form': t = 'form'; break;
+     default: break;
+     }
+ 
+diff --git a/common/loginpage/src/paneltemplates.js b/common/loginpage/src/paneltemplates.js
+index 698994ba1..b731569db 100644
+--- a/common/loginpage/src/paneltemplates.js
++++ b/common/loginpage/src/paneltemplates.js
+@@ -76,7 +76,6 @@
+                                     <a data-value='Documents' class='nav-item selected' l10n>${_lang.tplDocument}</a>
+                                     <a data-value='Spreadsheets' class='nav-item' l10n>${_lang.tplSpreadsheet}</a>
+                                     <a data-value='Presentations' class='nav-item' l10n>${_lang.tplPresentation}</a>
+-                                    <a data-value='PDFs' class='nav-item' l10n>${_lang.tplPDF}</a>
+                                 </div>
+                                 <div id="search-result" class="search-result" style="display: none;"></div>
+                                     <div id="search-no-results" class="search-no-results" style="display: none;">
+@@ -262,7 +261,7 @@
+                 (this.tmpls || tmpls)
+                     .forEach(item => {
+                         const type = utils.formatToEditor(item.type);
+-                        if (['word', 'cell', 'slide', 'pdf'].includes(type)) {
++                        if (['word', 'cell', 'slide'].includes(type)) {
+                             // this.templates.add(new FileTemplateModel(item));
+ 
+                             const m = this.templates.find('path', item.path);
+@@ -302,6 +301,8 @@
+ 
+                 const file_ext = info['form_exts']['data'][0]['attributes']['ext'],
+                     id = i.id;
++                // OpenIntra Edition: keine PDF-/Formularvorlagen (PDF öffnet OpenIntraPDF)
++                if ( utils.formatToEditor(utils.fileExtensionToFileFormat(file_ext)) == 'pdf' ) return;
+                 if (!this.templates.items.some(t => t.uid === id)) {
+ 
+                     const m = new FileTemplateModel({
+diff --git a/package/common/linux/desktopeditors.desktop.m4 b/package/common/linux/desktopeditors.desktop.m4
+index bc9e95e5a..9b9212933 100644
+--- a/package/common/linux/desktopeditors.desktop.m4
++++ b/package/common/linux/desktopeditors.desktop.m4
+@@ -73,7 +73,7 @@ text/markdown;dnl
+ text/plain;dnl
+ text/tab-separated-values;dnl
+ x-scheme-handler/M4_SCHEME_HANDLER;
+-Actions=NewDocument;NewSpreadsheet;NewPresentation;NewForm;
++Actions=NewDocument;NewSpreadsheet;NewPresentation;
+ StartupWMClass=_WM_CLASS
+ 
+ [Desktop Action NewDocument]
+@@ -210,48 +210,3 @@ Name[vi]=_NEW_SLIDE_vi
+ Name[zh_CN]=_NEW_SLIDE_zhcn
+ Name[zh_TW]=_NEW_SLIDE_zhtw
+ Exec=/usr/bin/M4_DESKTOPEDITORS_EXEC --new:slide
+-
+-[Desktop Action NewForm]
+-Name=_NEW_FORM
+-Name[ar]=_NEW_FORM_ar
+-Name[be]=_NEW_FORM_be
+-Name[bg]=_NEW_FORM_bg
+-Name[ca]=_NEW_FORM_ca
+-Name[cs]=_NEW_FORM_cs
+-Name[da]=_NEW_FORM_da
+-Name[de]=_NEW_FORM_de
+-Name[el]=_NEW_FORM_el
+-Name[es]=_NEW_FORM_es
+-Name[fi]=_NEW_FORM_fi
+-Name[fr]=_NEW_FORM_fr
+-Name[gl]=_NEW_FORM_gl
+-Name[he]=_NEW_FORM_he
+-Name[hu]=_NEW_FORM_hu
+-Name[hy]=_NEW_FORM_hy
+-Name[id]=_NEW_FORM_id
+-Name[it]=_NEW_FORM_it
+-Name[ja]=_NEW_FORM_ja
+-Name[ko]=_NEW_FORM_ko
+-Name[lo]=_NEW_FORM_lo
+-Name[lv]=_NEW_FORM_lv
+-Name[nb]=_NEW_FORM_nb
+-Name[nl]=_NEW_FORM_nl
+-Name[pl]=_NEW_FORM_pl
+-Name[pt]=_NEW_FORM_pt
+-Name[pt_BR]=_NEW_FORM_ptbr
+-Name[ro]=_NEW_FORM_ro
+-Name[ru]=_NEW_FORM_ru
+-Name[si]=_NEW_FORM_si
+-Name[sk]=_NEW_FORM_sk
+-Name[sl]=_NEW_FORM_sl
+-Name[sq]=_NEW_FORM_sq
+-Name[sr@latin]=_NEW_FORM_srlat
+-Name[sr]=_NEW_FORM_sr
+-Name[sv]=_NEW_FORM_sv
+-Name[tr]=_NEW_FORM_tr
+-Name[uk]=_NEW_FORM_uk
+-Name[ur]=_NEW_FORM_ur
+-Name[vi]=_NEW_FORM_vi
+-Name[zh_CN]=_NEW_FORM_zhcn
+-Name[zh_TW]=_NEW_FORM_zhtw
+-Exec=/usr/bin/M4_DESKTOPEDITORS_EXEC --new:form
+diff --git a/package/common/linux/desktopeditors.sh.m4 b/package/common/linux/desktopeditors.sh.m4
+index fbf523132..8913537f1 100644
+--- a/package/common/linux/desktopeditors.sh.m4
++++ b/package/common/linux/desktopeditors.sh.m4
+@@ -313,7 +313,6 @@ copy_templates() {
+   cp -fv "$SOURCE_DIR/new.docx" "$XDG_TEMPLATES_DIR/$NEW_DOCX.docx"
+   cp -fv "$SOURCE_DIR/new.xlsx" "$XDG_TEMPLATES_DIR/$NEW_XLSX.xlsx"
+   cp -fv "$SOURCE_DIR/new.pptx" "$XDG_TEMPLATES_DIR/$NEW_PPTX.pptx"
+-  cp -fv "$SOURCE_DIR/new.pdf" "$XDG_TEMPLATES_DIR/$NEW_PDFF.pdf"
+ 
+   exit 0
+ }
+diff --git a/win-linux/src/cascapplicationmanagerwrapper.cpp b/win-linux/src/cascapplicationmanagerwrapper.cpp
+index 9c645474c..a9eb37ff6 100644
+--- a/win-linux/src/cascapplicationmanagerwrapper.cpp
++++ b/win-linux/src/cascapplicationmanagerwrapper.cpp
+@@ -957,6 +957,9 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
+                                     i == 1 ? COpenOptions::eOpenMode::view : COpenOptions::eOpenMode::edit;
+             }else
+             if ( check_param(arg, L"--new" ) ) {
++                // OpenIntra Edition: keine neuen PDF-Formulare
++                if ( arg.rfind(L"form") != wstring::npos )
++                    continue;
+                 open_opts.srctype = etNewFile;
+                 open_opts.format = arg.rfind(L"cell") != wstring::npos ? AVS_OFFICESTUDIO_FILE_SPREADSHEET_XLSX :
+                                     arg.rfind(L"slide") != wstring::npos ? AVS_OFFICESTUDIO_FILE_PRESENTATION_PPTX :
+diff --git a/win-linux/src/cascapplicationmanagerwrapper_private.h b/win-linux/src/cascapplicationmanagerwrapper_private.h
+index 1d7bcce60..e17c64779 100644
+--- a/win-linux/src/cascapplicationmanagerwrapper_private.h
++++ b/win-linux/src/cascapplicationmanagerwrapper_private.h
+@@ -374,6 +374,9 @@ public:
+ 
+                         openDocument(opts);
+                     }
++                } else
++                if ( format == L"form" ) {
++                    // OpenIntra Edition: keine neuen PDF-Formulare
+                 } else {
+                     int _f = format == L"word" ? AVS_OFFICESTUDIO_FILE_DOCUMENT_DOCX :
+                                  format == L"cell" ? AVS_OFFICESTUDIO_FILE_SPREADSHEET_XLSX :
+diff --git a/win-linux/src/windows/cmainwindow.cpp b/win-linux/src/windows/cmainwindow.cpp
+index 45f8af1ae..f4f6e4003 100644
+--- a/win-linux/src/windows/cmainwindow.cpp
++++ b/win-linux/src/windows/cmainwindow.cpp
+@@ -826,7 +826,7 @@ void CMainWindow::setTabMenu(int index, const QPoint &pos)
+         actCreateNew->setIcon(IconFactory::icon(IconFactory::CreateNew, SMALL_ICON * m_dpiRatio));
+         AscEditorType etype = panel->data()->contentType();
+         actCreateNew->setEnabled(panel->isReady() && (etype == AscEditorType::etDocument || etype == AscEditorType::etPresentation ||
+-                                                      etype == AscEditorType::etSpreadsheet || etype == AscEditorType::etPdf /*||
++                                                      etype == AscEditorType::etSpreadsheet /*||
+                                                       etype == AscEditorType::etDraw*/));
+         connect(actCreateNew, &QAction::triggered, this, [=]() {
+                 AscEditorType etype = panel->data()->contentType();
+@@ -834,7 +834,7 @@ void CMainWindow::setTabMenu(int index, const QPoint &pos)
+                                        etype == AscEditorType::etPresentation ? L"--new:slide" :
+                                        etype == AscEditorType::etSpreadsheet ? L"--new:cell" :
+                                        // etype == AscEditorType::etDraw ? L"--new:draw" :
+-                                       etype == AscEditorType::etPdf ? L"--new:form" : L"";
++                                       L"";
+                 if (!cmd.empty())
+                     AscAppManager::handleInputCmd({cmd});
+             }, Qt::QueuedConnection);
+-- 
+2.47.3
+

@@ -1,0 +1,294 @@
+From 205af18badad62f1371cab8e48f72d31639dbb39 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
+Date: Sun, 4 Oct 2026 20:27:49 +0200
+Subject: [PATCH 1/4] =?UTF-8?q?OpenIntra=20Edition:=20PDF=20an=20OpenIntra?=
+ =?UTF-8?q?PDF=20=C3=BCbergeben?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+PDF-Dateien (PDF, PDF/A und PDF-Formulare) öffnet die Edition nicht mehr
+im eigenen PDF-Editor, sondern übergibt sie an ein eigenes Programm,
+Vorgabe "openintrapdf". Das gilt für Kommandozeile/Zweitinstanz,
+Öffnen-Dialog, Ziehen und Ablegen, "Zuletzt" und die Download-Leiste.
+
+- Programm aus /etc/xdg/euro-office/pdf-programm.conf (Schlüssel
+  "programm"); ohne Eintrag "openintrapdf", "intern" schaltet ab.
+- Nur Dateien mit Endung .pdf; XPS, DjVu usw. bleiben im eigenen
+  Betrachter. Ist das Programm nicht installiert, gilt der eigene
+  Betrachter als Rückfall.
+- Bereinigte Umgebung für das Kindprogramm: kein LD_PRELOAD (libcef.so)
+  und kein LD_LIBRARY_PATH (mitgeliefertes Qt/ICU). QT_QPA_PLATFORM,
+  GDK_BACKEND, QT_ENABLE_HIGHDPI_SCALING und GTK_THEME, die DesktopEditors
+  selbst setzt, bekommen den Wert vom Programmstart zurück.
+- Start nur mit PDF-Dateien: Übergabe schon in main(), vor CEF und
+  ohne Fenster; das Programm endet danach.
+- Prozessgrenze: Aufruf nur per exec mit Dateipfad, kein gemeinsamer
+  Code, keine gemeinsamen Bibliotheken.
+
+Teil des Patchsatzes der Euro-Office OpenIntra Edition,
+gegen desktop-apps 6d84c544 (DesktopEditors 77da4ef).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01JRpahNJ1WRWocp97RtmQ7Q
+---
+ .../src/cascapplicationmanagerwrapper.cpp     |   6 +-
+ .../cascapplicationmanagerwrapper_private.h   |   5 +
+ win-linux/src/ceditortools.cpp                | 109 ++++++++++++++++++
+ win-linux/src/ceditortools.h                  |  11 ++
+ win-linux/src/components/asctabwidget.cpp     |   5 +
+ win-linux/src/main.cpp                        |  12 ++
+ 6 files changed, 147 insertions(+), 1 deletion(-)
+
+diff --git a/win-linux/src/cascapplicationmanagerwrapper.cpp b/win-linux/src/cascapplicationmanagerwrapper.cpp
+index ae52d2cf9..9c645474c 100644
+--- a/win-linux/src/cascapplicationmanagerwrapper.cpp
++++ b/win-linux/src/cascapplicationmanagerwrapper.cpp
+@@ -1029,7 +1029,11 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
+                 auto _c_pos = open_opts.wurl.rfind(QString(QDir::separator()).toStdWString());
+ #endif
+                 if ( _error == 0 ) {
+-                    _error = CCefViewEditor::GetFileFormat(open_opts.wurl) == 0 ? EBADF : 0;
++                    const int _fmt = CCefViewEditor::GetFileFormat(open_opts.wurl);
++                    _error = _fmt == 0 ? EBADF : 0;
++                    // OpenIntra Edition: PDF geht an OpenIntraPDF, ohne Hauptfenster
++                    if ( _error == 0 && CEditorTools::openPdfExternally(open_opts.wurl, _fmt) )
++                        continue;
+                 }
+ 
+                 if ( _error == 0 ) {
+diff --git a/win-linux/src/cascapplicationmanagerwrapper_private.h b/win-linux/src/cascapplicationmanagerwrapper_private.h
+index 979917882..1d7bcce60 100644
+--- a/win-linux/src/cascapplicationmanagerwrapper_private.h
++++ b/win-linux/src/cascapplicationmanagerwrapper_private.h
+@@ -327,6 +327,11 @@ public:
+                     if ( bringEditorToFront(qfile_path) )
+                         return true;
+ 
++                    // OpenIntra Edition: PDF geht an OpenIntraPDF – kein eigener Reiter,
++                    // also auch keine Meldung "kann nicht geöffnet werden"
++                    if ( CEditorTools::openPdfExternally(file_path) )
++                        return true;
++
+                     QFileInfo _info(qfile_path);
+                     COpenOptions opts{_info.fileName(), etLocalFile};
+                     opts.parent_id = event.m_nSenderId;
+diff --git a/win-linux/src/ceditortools.cpp b/win-linux/src/ceditortools.cpp
+index 5eb1bd287..96bd8e761 100644
+--- a/win-linux/src/ceditortools.cpp
++++ b/win-linux/src/ceditortools.cpp
+@@ -28,6 +28,13 @@
+ #include "components/cprintprogress.h"
+ #include "cascapplicationmanagerwrapper.h"
+ #include "components/cfiledialog.h"
++#include <QProcess>
++#include <QProcessEnvironment>
++#include <QStandardPaths>
++#include <QSettings>
++#include <QFileInfo>
++#include <QHash>
++#include <QUrl>
+ #include "components/cprintdialog.h"
+ #include "defines.h"
+ #include "utils.h"
+@@ -46,6 +53,47 @@
+ 
+ using namespace NSEditorApi;
+ 
++namespace {
++    // OpenIntra Edition: Variablen, die DesktopEditors selbst setzt (main.cpp,
++    // cthemes.cpp). Das PDF-Programm soll sie nicht erben.
++    const char * const g_own_env[] = {"QT_QPA_PLATFORM", "GDK_BACKEND", "QT_ENABLE_HIGHDPI_SCALING", "GTK_THEME"};
++    bool g_env_remembered = false;
++    QHash<QString, QString> g_start_env;
++
++    auto isPdfFormat(int format) -> bool {
++        return format == AVS_OFFICESTUDIO_FILE_CROSSPLATFORM_PDF ||
++               format == AVS_OFFICESTUDIO_FILE_CROSSPLATFORM_PDFA ||
++               format == AVS_OFFICESTUDIO_FILE_DOCUMENT_OFORM_PDF;
++    }
++
++    // Programm aus /etc/xdg/<REG_GROUP_KEY>/pdf-programm.conf, Schlüssel "programm";
++    // ohne Eintrag "openintrapdf", "intern" schaltet ab. Leer = nicht verfügbar.
++    auto pdfProgram() -> QString {
++        QSettings conf(QSettings::IniFormat, QSettings::SystemScope, REG_GROUP_KEY, "pdf-programm");
++        const QString name = conf.value("programm", "openintrapdf").toString().trimmed();
++        if ( name.isEmpty() || name == "intern" )
++            return QString();
++        return QStandardPaths::findExecutable(name);
++    }
++
++    // Der Starter setzt LD_PRELOAD=libcef.so und LD_LIBRARY_PATH auf die
++    // mitgelieferten Qt-/ICU-Bibliotheken; das darf das PDF-Programm nicht erben.
++    auto cleanEnvironment() -> QProcessEnvironment {
++        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
++        env.remove("LD_PRELOAD");
++        env.remove("LD_LIBRARY_PATH");
++        if ( g_env_remembered ) {
++            for (const char * k : g_own_env) {
++                const QString key = QString::fromLatin1(k);
++                if ( g_start_env.contains(key) )
++                    env.insert(key, g_start_env.value(key));
++                else env.remove(key);
++            }
++        }
++        return env;
++    }
++}
++
+ namespace CEditorTools
+ {
+     void print(const sPrintConf& c)
+@@ -391,6 +439,11 @@ namespace CEditorTools
+             _file_format = CCefViewEditor::GetFileFormat(opts.wurl);
+             if ( _file_format == 0 )
+                 return nullptr;
++            if ( openPdfExternally(opts.wurl, _file_format) )
++                return nullptr;
++        } else
++        if ( opts.srctype == etRecentFile && openPdfExternally(opts.wurl) ) {
++            return nullptr;
+         } else
+         if (opts.srctype == etRecentFile) {
+             if (CFileInspector::isLocalFile(QString::fromStdWString(opts.wurl))) {
+@@ -473,6 +526,62 @@ namespace CEditorTools
+         return panel;
+     }
+ 
++    auto rememberStartEnvironment() -> void {
++        for (const char * k : g_own_env) {
++            if ( qEnvironmentVariableIsSet(k) )
++                g_start_env.insert(QString::fromLatin1(k), qEnvironmentVariable(k));
++        }
++        g_env_remembered = true;
++    }
++
++    auto openPdfExternally(const std::wstring& path, int format) -> bool {
++        const QFileInfo info(QString::fromStdWString(path));
++        // OpenIntraPDF nimmt nur *.pdf an; alles andere bleibt hier
++        if ( info.suffix().compare("pdf", Qt::CaseInsensitive) != 0 || !info.isFile() )
++            return false;
++        if ( format == 0 )
++            format = CCefViewEditor::GetFileFormat(path);
++        // XPS, DjVu usw. bleiben im eigenen Betrachter
++        if ( !isPdfFormat(format) )
++            return false;
++        const QString exe = pdfProgram();
++        if ( exe.isEmpty() )
++            return false; // kein PDF-Programm installiert: eigener Betrachter als Rückfall
++
++        QProcess proc;
++        proc.setProgram(exe);
++        proc.setArguments({info.absoluteFilePath()});
++        proc.setProcessEnvironment(cleanEnvironment());
++        proc.setWorkingDirectory(QDir::homePath());
++        return proc.startDetached();
++    }
++
++    auto handOverPdfsOnly(const std::vector<std::wstring>& args) -> bool {
++        std::vector<std::wstring> files;
++        for (const auto& a : args) {
++            QString arg = QString::fromStdWString(a);
++            if ( arg.startsWith("--") ) {
++                // Optionen wie --lang:de sind erlaubt, alles was etwas öffnet nicht
++                if ( arg.startsWith("--new") || arg.startsWith("--view") ||
++                        arg.startsWith("--edit") || arg.startsWith("--review") )
++                    return false;
++                continue;
++            }
++            if ( arg.startsWith("file://") )
++                arg = QUrl(arg).toLocalFile();
++            const QFileInfo info(arg);
++            if ( info.suffix().compare("pdf", Qt::CaseInsensitive) != 0 || !info.isFile() ||
++                    !isPdfFormat(CCefViewEditor::GetFileFormat(arg.toStdWString())) )
++                return false;
++            files.push_back(arg.toStdWString());
++        }
++        if ( files.empty() || pdfProgram().isEmpty() )
++            return false;
++        for (const auto& f : files)
++            openPdfExternally(f);
++        return true;
++    }
++
+     auto editorTypeFromFormat(int format) -> AscEditorType {
+         if ( format == AVS_OFFICESTUDIO_FILE_DOCUMENT_DOCXF ) {
+             return AscEditorType::etDocumentMasterForm;
+diff --git a/win-linux/src/ceditortools.h b/win-linux/src/ceditortools.h
+index 84ad92b55..01cf95190 100644
+--- a/win-linux/src/ceditortools.h
++++ b/win-linux/src/ceditortools.h
+@@ -57,6 +57,17 @@ namespace CEditorTools
+ 
+     auto createEditorPanel(const COpenOptions& opts, QWidget *parent = nullptr) -> CTabPanel *;
+     auto editorTypeFromFormat(int format) -> AscEditorType;
++    // OpenIntra Edition: PDF-Dateien (PDF, PDF/A, PDF-Formulare) gehen an ein
++    // eigenes Programm, Vorgabe OpenIntraPDF (/etc/xdg/<firma>/pdf-programm.conf).
++    // Aufruf nur per exec mit Dateipfad, kein gemeinsamer Code.
++    // true = übergeben, der Aufrufer öffnet keinen eigenen Reiter.
++    auto openPdfExternally(const std::wstring& path, int format = 0) -> bool;
++    // Ganz am Anfang von main(): Umgebung merken, bevor DesktopEditors eigene
++    // Werte setzt (QT_QPA_PLATFORM, GDK_BACKEND, ...). Das PDF-Programm bekommt
++    // die Werte vom Programmstart zurück.
++    auto rememberStartEnvironment() -> void;
++    // Start nur mit PDF-Dateien: übergeben und true liefern (dann ohne Fenster beenden).
++    auto handOverPdfsOnly(const std::vector<std::wstring>& args) -> bool;
+     auto processLocalFileSaveAs(const NSEditorApi::CAscCefMenuEvent * event) -> void;
+ }
+ 
+diff --git a/win-linux/src/components/asctabwidget.cpp b/win-linux/src/components/asctabwidget.cpp
+index 58781e79d..b0684b161 100644
+--- a/win-linux/src/components/asctabwidget.cpp
++++ b/win-linux/src/components/asctabwidget.cpp
+@@ -244,6 +244,11 @@ int CAscTabWidget::addEditor(const COpenOptions& opts)
+         if (file_format == 0)
+             /* TODO: show error for file format */
+             return -255;
++        if (CEditorTools::openPdfExternally(opts.wurl, file_format))
++            return -1;
++    } else
++    if (opts.srctype == etRecentFile && CEditorTools::openPdfExternally(opts.wurl)) {
++        return -1;
+     }
+ 
+     QWidget * panelwidget = createTabPanel(this);
+diff --git a/win-linux/src/main.cpp b/win-linux/src/main.cpp
+index 3cf6670dc..55e962e50 100644
+--- a/win-linux/src/main.cpp
++++ b/win-linux/src/main.cpp
+@@ -38,6 +38,7 @@
+ #include "version.h"
+ #include "utils.h"
+ #include "chelp.h"
++#include "ceditortools.h"
+ #include "common/File.h"
+ #include <QStyleFactory>
+ #include <vector>
+@@ -60,6 +61,10 @@ int main( int argc, char *argv[] )
+         return 0;
+     }
+ #else
++    // OpenIntra Edition: vor der Plattformwahl und allen eigenen qputenv() merken
++    // (QT_QPA_PLATFORM, GDK_BACKEND, QT_ENABLE_HIGHDPI_SCALING, GTK_THEME): Das
++    // PDF-Programm bekommt die Werte vom Programmstart zurueck.
++    CEditorTools::rememberStartEnvironment();
+     dynamic_argv.assign(argv, argv + argc);
+     // Decide the platform exactly once. Everything downstream (Qt, GTK, CEF,
+     // desktop-sdk) keys off the normalized QT_QPA_PLATFORM / platformName(),
+@@ -195,6 +200,13 @@ int main( int argc, char *argv[] )
+         reg_user.remove("lockPortals");
+     }
+ 
++#ifdef __linux
++    // OpenIntra Edition: nur PDF-Dateien übergeben → an OpenIntraPDF reichen und
++    // beenden, ohne Fenster und ohne CEF zu starten
++    if ( CEditorTools::handOverPdfsOnly(InputArgs::arguments()) )
++        return 0;
++#endif
++
+     SingleApplication app(new_argc, new_argv);
+ 
+     if ( !app.isPrimary() ) {
+-- 
+2.47.3
+

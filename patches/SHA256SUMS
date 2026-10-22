@@ -1,0 +1,5 @@
+ed4ffe81e3d7e5bca08843bb73b80f703aa51ddefde0c2c46b537b3dcbe9bf98  ./desktop-apps/0001-pdf-an-openintrapdf.patch
+d07f697ccead44a5a915a78e4a7cbd2ca8dae7b71822e0450395926b4dacf5fa  ./desktop-apps/0002-pdf-nicht-mehr-beanspruchen.patch
+788ea44c2175d0b404e606c19fa6a661f408824c2c084c08e9186c05eb66e5a4  ./desktop-apps/0003-formular-einstiege-entfernen.patch
+bbcf9a906dd7ba8e1714750a33c3fb6b221100c9025d927426112c01eec759a5  ./desktop-apps/0004-starter-text-tabelle-praesentation.patch
+31f9d7afc04c46cd59b2bf01b97b30378575c0f2cb84632a6d84f5bca7382a63  ./DesktopEditors/0001-nur-deb-packen.patch

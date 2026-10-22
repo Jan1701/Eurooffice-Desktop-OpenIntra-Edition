@@ -1,0 +1,49 @@
+From d4a07a1cda353c561f7a19309158c5d4d7ee2d53 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
+Date: Sun, 4 Oct 2026 20:19:07 +0200
+Subject: [PATCH] build(linux): nur .deb packen
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+OpenIntra Edition: Der Pakete-Schritt baut nur noch das .deb.
+rpm und tar.xz würden je 1,4 GB mit xz -9 komprimieren und
+kosten 15–30 Minuten, gebraucht wird nur Debian.
+
+Teil des Patchsatzes der Euro-Office OpenIntra Edition,
+gegen DesktopEditors 77da4ef (feature/macos-build).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01JRpahNJ1WRWocp97RtmQ7Q
+---
+ build/.docker/packages.bake.Dockerfile | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/build/.docker/packages.bake.Dockerfile b/build/.docker/packages.bake.Dockerfile
+index 3bc95fd..7b6681e 100644
+--- a/build/.docker/packages.bake.Dockerfile
++++ b/build/.docker/packages.bake.Dockerfile
+@@ -52,17 +52,16 @@ FROM ubuntu:24.04 AS package
+         mkdir -p ${OUT_BASE} && \
+         ln -s ${BUNDLE_BASE} ${OUT_BASE}/linux_64  && \
+         ln -s ${BUNDLE_BASE} ${OUT_BASE}/linux_arm64 && \
+-        make deb rpm tar \
++        make deb \
+             BRANDING_DIR="." \
+             BUILD_OUTPUT_DIR="${OUT_BASE}" \
+             PRODUCT_VERSION="${PRODUCT_VERSION}" \
+             PACKAGE_EDITION=opensource \
+             BUILD_NUMBER="${BUILD_NUMBER}"
+ 
++    # OpenIntra Edition: nur .deb (rpm/tar komprimieren je 1,4 GB mit xz -9 und kosten 15–30 min)
+     RUN mkdir -p /packages && \
+-        find /desktop-editors-package/deb -name "*.deb"    -exec cp -v {} /packages/ \;  && \
+-        find /desktop-editors-package/rpm -name "*.rpm"    -exec cp -v {} /packages/ \;  && \
+-        find /desktop-editors-package/tar -name "*.tar.xz" -exec cp -v {} /packages/ \;
++        find /desktop-editors-package/deb -name "*.deb"    -exec cp -v {} /packages/ \;
+ 
+ #### PACKAGES OUTPUT ####
+ # Scratch stage so `docker build --target packages -o <dir>` extracts only
+-- 
+2.47.3
+

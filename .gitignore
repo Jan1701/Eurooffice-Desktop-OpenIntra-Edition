@@ -1,0 +1,9 @@
+# Bauergebnisse und Quellspiegel liegen außerhalb des Repos (bau/*.sh: /srv/bau/eurooffice)
+*.deb
+*.rpm
+*.dmg
+*.exe
+*.msi
+*.tar.xz
+.DS_Store
+__pycache__/

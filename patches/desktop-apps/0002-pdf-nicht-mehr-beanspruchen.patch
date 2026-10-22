@@ -1,0 +1,37 @@
+From fc3fd8cc614f3e6975d0ce77f24f4b1de71c9582 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
+Date: Sun, 4 Oct 2026 20:27:49 +0200
+Subject: [PATCH 2/4] OpenIntra Edition: application/pdf nicht mehr
+ beanspruchen
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Die .desktop-Datei meldet application/pdf nicht mehr an. Damit kann die
+Edition die PDF-Zuordnung auch außerhalb von KDE (xdg-mime, GNOME) nicht
+an sich ziehen; PDFs öffnet OpenIntraPDF.
+
+Teil des Patchsatzes der Euro-Office OpenIntra Edition,
+gegen desktop-apps 6d84c544 (DesktopEditors 77da4ef).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01JRpahNJ1WRWocp97RtmQ7Q
+---
+ package/common/linux/desktopeditors.desktop.m4 | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/package/common/linux/desktopeditors.desktop.m4 b/package/common/linux/desktopeditors.desktop.m4
+index b8d75bef7..bc9e95e5a 100644
+--- a/package/common/linux/desktopeditors.desktop.m4
++++ b/package/common/linux/desktopeditors.desktop.m4
+@@ -65,7 +65,6 @@ application/wps-office.dpt;dnl
+ application/x-hwp;dnl
+ application/epub+zip;dnl
+ application/oxps;dnl
+-application/pdf;dnl
+ application/rtf;dnl
+ application/x-fictionbook+xml;dnl
+ image/vnd.djvu;dnl
+-- 
+2.47.3
+

@@ -1,0 +1,403 @@
+From 042e854c52f1426a83797b3f3edbe7829b375e43 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
+Date: Sun, 4 Oct 2026 20:33:47 +0200
+Subject: [PATCH 4/4] =?UTF-8?q?OpenIntra=20Edition:=20Starter=20f=C3=BCr?=
+ =?UTF-8?q?=20Text,=20Tabelle=20und=20Pr=C3=A4sentation?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Statt eines Sammelstarters "Euro-Office" bekommt jede Anwendung einen
+eigenen Starter mit OpenIntra-Symbol:
+
+- Euro-Office Text (Textverarbeitung), --starter:word
+- Euro-Office Tabelle (Tabellenkalkulation), --starter:cell
+- Euro-Office Präsentation, --starter:slide
+
+Ohne Datei öffnet der Starter ein neues Dokument dieser Art, mit Datei
+nur die Datei (Startskript wertet --starter:… aus). Die Dateitypen sind
+auf die drei Starter verteilt (Word-/Writer-Formate → Text,
+Excel/Calc/CSV → Tabelle, PowerPoint/Impress → Präsentation).
+
+Der bisherige Starter bleibt mit NoDisplay=true im Paket: für die
+Fensterzuordnung (StartupWMClass), das Schema oo-office und die Typen,
+die keiner der drei öffnet (XPS, OXPS, DjVu, Visio, ODG).
+
+Paketbeschreibung nennt die Edition und die Änderungen (AGPL §5a).
+
+Herkunft der Symbole (Apache-2.0, Jan Günther, unverändert übernommen):
+OpenIntraHub source/core/frontend/src/assets/dateisymbole/
+(Commit 8dc904a1 "Dateisymbole: OpenIntra-Familie …", Stand 55025cd5)
+  50f9da11330439704c24d3a61cf1999179983ffe529cfe8ddbfbb1a3a4a93d01  openintra-text.svg
+  ca4d0e129fe489a436f1bb1e3b26af024e4e344655e9ee55bc75dde25939e5c8  openintra-tabelle.svg
+  3e584748302f5b4d23c425c4dd9b634ea086b07f752503096ec08ac610663394  openintra-praesentation.svg
+Lizenzvermerk in debian/copyright.
+
+Teil des Patchsatzes der Euro-Office OpenIntra Edition (Stufe 3a),
+gegen desktop-apps 6d84c544 (DesktopEditors 77da4ef).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01JRpahNJ1WRWocp97RtmQ7Q
+---
+ package/Makefile                              | 10 ++++
+ .../common/linux/desktopeditors.desktop.m4    | 52 ++-----------------
+ package/common/linux/desktopeditors.sh.m4     | 17 ++++++
+ .../openintra/openintra-praesentation.svg     | 10 ++++
+ .../linux/openintra/openintra-tabelle.svg     | 10 ++++
+ .../common/linux/openintra/openintra-text.svg | 10 ++++
+ .../starter-praesentation.desktop.m4          | 31 +++++++++++
+ .../openintra/starter-tabelle.desktop.m4      | 32 ++++++++++++
+ .../linux/openintra/starter-text.desktop.m4   | 37 +++++++++++++
+ package/deb/template/control.m4               |  8 +--
+ package/deb/template/copyright.m4             | 12 +++++
+ 11 files changed, 177 insertions(+), 52 deletions(-)
+ create mode 100644 package/common/linux/openintra/openintra-praesentation.svg
+ create mode 100644 package/common/linux/openintra/openintra-tabelle.svg
+ create mode 100644 package/common/linux/openintra/openintra-text.svg
+ create mode 100644 package/common/linux/openintra/starter-praesentation.desktop.m4
+ create mode 100644 package/common/linux/openintra/starter-tabelle.desktop.m4
+ create mode 100644 package/common/linux/openintra/starter-text.desktop.m4
+
+diff --git a/package/Makefile b/package/Makefile
+index 856d7c6ad..bf9f3c808 100644
+--- a/package/Makefile
++++ b/package/Makefile
+@@ -62,6 +62,10 @@ DESKTOPEDITORS_EXEC := $(PACKAGE_NAME)
+ 
+ BIN_FILES += build/main/usr/bin/$(DESKTOPEDITORS_EXEC)
+ DESKTOP_FILES += build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC).desktop
++# OpenIntra Edition: je ein Starter für Text, Tabelle und Präsentation, mit OpenIntra-Symbol
++OI_STARTER := text tabelle praesentation
++DESKTOP_FILES += $(foreach s,$(OI_STARTER),build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC)-$(s).desktop)
++LINUX_DEPS += $(foreach s,$(OI_STARTER),build/main/usr/share/icons/hicolor/scalable/apps/$(DESKTOPEDITORS_EXEC)-$(s).svg)
+ LINUX_DEPS += $(BIN_FILES)
+ LINUX_DEPS += $(DESKTOP_FILES)
+ LINUX_DEPS += $(CHANGELOG_RPM)
+@@ -350,6 +354,12 @@ $(TAR_HELP) : build
+ 
+ build/main/usr/bin/$(DESKTOPEDITORS_EXEC) : common/linux/desktopeditors.sh.m4
+ build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC).desktop : common/linux/desktopeditors.desktop.m4
++build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC)-text.desktop : common/linux/openintra/starter-text.desktop.m4
++build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC)-tabelle.desktop : common/linux/openintra/starter-tabelle.desktop.m4
++build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC)-praesentation.desktop : common/linux/openintra/starter-praesentation.desktop.m4
++
++build/main/usr/share/icons/hicolor/scalable/apps/$(DESKTOPEDITORS_EXEC)-%.svg : common/linux/openintra/openintra-%.svg
++	install -m 644 -D $< $@
+ 
+ $(BIN_FILES) $(DESKTOP_FILES) :
+ 	mkdir -p $(@D) && m4 -I "$(BRANDING_DIR)/common/linux" $(M4_PARAMS) $< > $@
+diff --git a/package/common/linux/desktopeditors.desktop.m4 b/package/common/linux/desktopeditors.desktop.m4
+index 9b9212933..547cc6cfe 100644
+--- a/package/common/linux/desktopeditors.desktop.m4
++++ b/package/common/linux/desktopeditors.desktop.m4
+@@ -7,71 +7,25 @@ GenericName[ru]=_GENERICNAME_ru
+ Comment=_COMMENT
+ Comment[ru]=_COMMENT_ru
+ Type=Application
++# OpenIntra Edition: im Menü stehen nur die Starter Text, Tabelle und Präsentation;
++# dieser Eintrag bleibt für Fensterzuordnung, XPS/DjVu/Visio und das Schema.
++NoDisplay=true
+ Exec=/usr/bin/M4_DESKTOPEDITORS_EXEC %U
+ Terminal=false
+ Icon=M4_DESKTOPEDITORS_EXEC
+ Keywords=Text;Document;OpenDocument Text;Microsoft Word;Microsoft Works;odt;doc;docx;rtf;
+ Categories=Office;WordProcessor;Spreadsheet;Presentation;
+ MimeType=dnl
+-application/msword;dnl
+-application/msword-template;dnl
+-application/vnd.ms-word.document.macroEnabled.12;dnl
+-application/vnd.ms-word.template.macroEnabled.12;dnl
+ application/vnd.ms-xpsdocument;dnl
+-application/vnd.ms-excel;dnl
+-application/vnd.ms-excel.sheet.macroEnabled.12;dnl
+-application/vnd.ms-excel.sheet.binary.macroEnabled.12;dnl
+-application/vnd.ms-excel.template.macroEnabled.12;dnl
+-application/vnd.ms-powerpoint;dnl
+-application/vnd.ms-powerpoint.presentation.macroEnabled.12;dnl
+-application/vnd.ms-powerpoint.slideshow.macroEnabled.12;dnl
+-application/vnd.ms-powerpoint.template.macroEnabled.12;dnl
+ application/vnd.ms-visio.drawing.main+xml;dnl
+ application/vnd.ms-visio.drawing.macroEnabled.main+xml;dnl
+ application/vnd.ms-visio.stencil.main+xml;dnl
+ application/vnd.ms-visio.stencil.macroEnabled.main+xml;dnl
+ application/vnd.ms-visio.template.main+xml;dnl
+ application/vnd.ms-visio.template.macroEnabled.main+xml;dnl
+-application/vnd.openxmlformats-officedocument.wordprocessingml.document;dnl
+-application/vnd.openxmlformats-officedocument.wordprocessingml.template;dnl
+-application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;dnl
+-application/vnd.openxmlformats-officedocument.spreadsheetml.template;dnl
+-application/vnd.openxmlformats-officedocument.presentationml.presentation;dnl
+-application/vnd.openxmlformats-officedocument.presentationml.slideshow;dnl
+-application/vnd.openxmlformats-officedocument.presentationml.template;dnl
+-application/vnd.apple.pages;dnl
+-application/vnd.apple.numbers;dnl
+-application/vnd.apple.keynote;dnl
+-application/vnd.oasis.opendocument.text;dnl
+-application/vnd.oasis.opendocument.text-flat-xml;dnl
+-application/vnd.oasis.opendocument.text-template;dnl
+-application/vnd.oasis.opendocument.spreadsheet;dnl
+-application/vnd.oasis.opendocument.spreadsheet-flat-xml;dnl
+-application/vnd.oasis.opendocument.spreadsheet-template;dnl
+-application/vnd.oasis.opendocument.presentation;dnl
+-application/vnd.oasis.opendocument.presentation-flat-xml;dnl
+-application/vnd.oasis.opendocument.presentation-template;dnl
+ application/vnd.oasis.opendocument.graphics;dnl
+-application/vnd.sun.xml.writer;dnl
+-application/vnd.sun.xml.writer.template;dnl
+-application/vnd.sun.xml.calc;dnl
+-application/vnd.sun.xml.impress;dnl
+-application/wps-office.wps;dnl
+-application/wps-office.wpt;dnl
+-application/wps-office.et;dnl
+-application/wps-office.ett;dnl
+-application/wps-office.dps;dnl
+-application/wps-office.dpt;dnl
+-application/x-hwp;dnl
+-application/epub+zip;dnl
+ application/oxps;dnl
+-application/rtf;dnl
+-application/x-fictionbook+xml;dnl
+ image/vnd.djvu;dnl
+-text/csv;dnl
+-text/markdown;dnl
+-text/plain;dnl
+-text/tab-separated-values;dnl
+ x-scheme-handler/M4_SCHEME_HANDLER;
+ Actions=NewDocument;NewSpreadsheet;NewPresentation;
+ StartupWMClass=_WM_CLASS
+diff --git a/package/common/linux/desktopeditors.sh.m4 b/package/common/linux/desktopeditors.sh.m4
+index 8913537f1..e4f3ec537 100644
+--- a/package/common/linux/desktopeditors.sh.m4
++++ b/package/common/linux/desktopeditors.sh.m4
+@@ -323,6 +323,23 @@ for arg in "$@"; do
+   fi
+ done
+ 
++# OpenIntra Edition: Starter Text/Tabelle/Präsentation rufen mit --starter:word|cell|slide.
++# Ohne Datei öffnet das ein neues Dokument dieser Art, mit Datei nur die Datei.
++STARTER_NEU=
++STARTER_DATEI=
++for arg do
++  shift
++  case $arg in
++    --starter:word|--starter:cell|--starter:slide) STARTER_NEU="--new:${arg#--starter:}"; continue ;;
++    --*) ;;
++    *) STARTER_DATEI=1 ;;
++  esac
++  set -- "$@" "$arg"
++done
++if [ -n "$STARTER_NEU" ] && [ -z "$STARTER_DATEI" ]; then
++  set -- "$@" "$STARTER_NEU"
++fi
++
+ APP_PATH=/opt/M4_DESKTOPEDITORS_PREFIX
+ export LD_LIBRARY_PATH=$APP_PATH:$APP_PATH/converter${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+ export LD_PRELOAD=$APP_PATH/libcef.so
+diff --git a/package/common/linux/openintra/openintra-praesentation.svg b/package/common/linux/openintra/openintra-praesentation.svg
+new file mode 100644
+index 000000000..75653721c
+--- /dev/null
++++ b/package/common/linux/openintra/openintra-praesentation.svg
+@@ -0,0 +1,10 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="32 322 284 352" width="284" height="352">
++  <title>OpenIntra Präsentation</title>
++  <defs><linearGradient id="za" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#E5904A"/><stop offset="1" stop-color="#D86E18"/></linearGradient><linearGradient id="zb" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#DF7C2B"/><stop offset="1" stop-color="#C96412"/></linearGradient><linearGradient id="zc" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#FFBA82"/><stop offset="1" stop-color="#F19D58"/></linearGradient><linearGradient id="zd" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#FFE4CE"/><stop offset="1" stop-color="#FFC89B"/></linearGradient>
++    <clipPath id="zk"><path d="M81.28,342 L222.8,342 L296,415.2 L296,624.72 Q296,654 266.72,654 L81.28,654 Q52,654 52,624.72 L52,371.28 Q52,342 81.28,342 Z"/></clipPath>
++    <mask id="zm" maskUnits="userSpaceOnUse" x="32" y="322" width="284" height="352">
++      <rect x="32" y="322" width="284" height="352" fill="white"/><line x1="159.36" y1="529.2" x2="270.38" y2="389.58" stroke="black" stroke-width="15" stroke-linecap="round"/><line x1="159.36" y1="529.2" x2="47" y2="488.64" stroke="black" stroke-width="15" stroke-linecap="round"/><line x1="159.36" y1="529.2" x2="198.4" y2="659" stroke="black" stroke-width="15" stroke-linecap="round"/>
++    </mask>
++  </defs>
++  <g mask="url(#zm)"><g clip-path="url(#zk)"><path d="M159.36,529.2 L47,488.64 L47,337 L270.38,337 L270.38,389.58 Z" fill="url(#za)"/><path d="M159.36,529.2 L198.4,659 L47,659 L47,488.64 Z" fill="url(#zb)"/><path d="M159.36,529.2 L270.38,389.58 L301,389.58 L301,659 L198.4,659 Z" fill="url(#zc)"/></g><path d="M236.3,344.7 L293.3,401.7 L236.3,401.7 Z" fill="url(#zd)"/></g>
++</svg>
+diff --git a/package/common/linux/openintra/openintra-tabelle.svg b/package/common/linux/openintra/openintra-tabelle.svg
+new file mode 100644
+index 000000000..65c57c693
+--- /dev/null
++++ b/package/common/linux/openintra/openintra-tabelle.svg
+@@ -0,0 +1,10 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="32 322 284 352" width="284" height="352">
++  <title>OpenIntra Tabelle</title>
++  <defs><linearGradient id="za" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#28D472"/><stop offset="1" stop-color="#19A455"/></linearGradient><linearGradient id="zb" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#22B462"/><stop offset="1" stop-color="#13944B"/></linearGradient><linearGradient id="zc" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#56F89C"/><stop offset="1" stop-color="#31E57F"/></linearGradient><linearGradient id="zd" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#9FFBC7"/><stop offset="1" stop-color="#6EF9AA"/></linearGradient>
++    <clipPath id="zk"><path d="M81.28,342 L222.8,342 L296,415.2 L296,624.72 Q296,654 266.72,654 L81.28,654 Q52,654 52,624.72 L52,371.28 Q52,342 81.28,342 Z"/></clipPath>
++    <mask id="zm" maskUnits="userSpaceOnUse" x="32" y="322" width="284" height="352">
++      <rect x="32" y="322" width="284" height="352" fill="white"/><line x1="159.36" y1="529.2" x2="270.38" y2="389.58" stroke="black" stroke-width="15" stroke-linecap="round"/><line x1="159.36" y1="529.2" x2="47" y2="488.64" stroke="black" stroke-width="15" stroke-linecap="round"/><line x1="159.36" y1="529.2" x2="198.4" y2="659" stroke="black" stroke-width="15" stroke-linecap="round"/>
++    </mask>
++  </defs>
++  <g mask="url(#zm)"><g clip-path="url(#zk)"><path d="M159.36,529.2 L47,488.64 L47,337 L270.38,337 L270.38,389.58 Z" fill="url(#za)"/><path d="M159.36,529.2 L198.4,659 L47,659 L47,488.64 Z" fill="url(#zb)"/><path d="M159.36,529.2 L270.38,389.58 L301,389.58 L301,659 L198.4,659 Z" fill="url(#zc)"/></g><path d="M236.3,344.7 L293.3,401.7 L236.3,401.7 Z" fill="url(#zd)"/></g>
++</svg>
+diff --git a/package/common/linux/openintra/openintra-text.svg b/package/common/linux/openintra/openintra-text.svg
+new file mode 100644
+index 000000000..428b92439
+--- /dev/null
++++ b/package/common/linux/openintra/openintra-text.svg
+@@ -0,0 +1,10 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="32 322 284 352" width="284" height="352">
++  <title>OpenIntra Text</title>
++  <defs><linearGradient id="za" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#3B7BDA"/><stop offset="1" stop-color="#1C5BBA"/></linearGradient><linearGradient id="zb" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#2668CA"/><stop offset="1" stop-color="#1652AB"/></linearGradient><linearGradient id="zc" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#6EA6F9"/><stop offset="1" stop-color="#4788E8"/></linearGradient><linearGradient id="zd" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#B7D3FC"/><stop offset="1" stop-color="#86B5FA"/></linearGradient>
++    <clipPath id="zk"><path d="M81.28,342 L222.8,342 L296,415.2 L296,624.72 Q296,654 266.72,654 L81.28,654 Q52,654 52,624.72 L52,371.28 Q52,342 81.28,342 Z"/></clipPath>
++    <mask id="zm" maskUnits="userSpaceOnUse" x="32" y="322" width="284" height="352">
++      <rect x="32" y="322" width="284" height="352" fill="white"/><line x1="159.36" y1="529.2" x2="270.38" y2="389.58" stroke="black" stroke-width="15" stroke-linecap="round"/><line x1="159.36" y1="529.2" x2="47" y2="488.64" stroke="black" stroke-width="15" stroke-linecap="round"/><line x1="159.36" y1="529.2" x2="198.4" y2="659" stroke="black" stroke-width="15" stroke-linecap="round"/>
++    </mask>
++  </defs>
++  <g mask="url(#zm)"><g clip-path="url(#zk)"><path d="M159.36,529.2 L47,488.64 L47,337 L270.38,337 L270.38,389.58 Z" fill="url(#za)"/><path d="M159.36,529.2 L198.4,659 L47,659 L47,488.64 Z" fill="url(#zb)"/><path d="M159.36,529.2 L270.38,389.58 L301,389.58 L301,659 L198.4,659 Z" fill="url(#zc)"/></g><path d="M236.3,344.7 L293.3,401.7 L236.3,401.7 Z" fill="url(#zd)"/></g>
++</svg>
+diff --git a/package/common/linux/openintra/starter-praesentation.desktop.m4 b/package/common/linux/openintra/starter-praesentation.desktop.m4
+new file mode 100644
+index 000000000..bc71e12a7
+--- /dev/null
++++ b/package/common/linux/openintra/starter-praesentation.desktop.m4
+@@ -0,0 +1,31 @@
++[Desktop Entry]
++Version=1.0
++Type=Application
++Name=M4_COMPANY_NAME Presentation
++Name[de]=M4_COMPANY_NAME Präsentation
++GenericName=Presentation
++GenericName[de]=Präsentation
++Comment=Create and show presentations – M4_COMPANY_NAME OpenIntra Edition
++Comment[de]=Präsentationen erstellen und vorführen – M4_COMPANY_NAME OpenIntra Edition
++Exec=/usr/bin/M4_DESKTOPEDITORS_EXEC --starter:slide %U
++Icon=M4_DESKTOPEDITORS_EXEC-praesentation
++Terminal=false
++StartupNotify=true
++Categories=Office;Presentation;
++Keywords=Presentation;Slides;Impress;pptx;ppt;odp;
++Keywords[de]=Präsentation;Folien;Vortrag;pptx;ppt;odp;
++MimeType=dnl
++application/vnd.ms-powerpoint;dnl
++application/vnd.ms-powerpoint.presentation.macroEnabled.12;dnl
++application/vnd.ms-powerpoint.slideshow.macroEnabled.12;dnl
++application/vnd.ms-powerpoint.template.macroEnabled.12;dnl
++application/vnd.openxmlformats-officedocument.presentationml.presentation;dnl
++application/vnd.openxmlformats-officedocument.presentationml.slideshow;dnl
++application/vnd.openxmlformats-officedocument.presentationml.template;dnl
++application/vnd.apple.keynote;dnl
++application/vnd.oasis.opendocument.presentation;dnl
++application/vnd.oasis.opendocument.presentation-flat-xml;dnl
++application/vnd.oasis.opendocument.presentation-template;dnl
++application/vnd.sun.xml.impress;dnl
++application/wps-office.dps;dnl
++application/wps-office.dpt;
+diff --git a/package/common/linux/openintra/starter-tabelle.desktop.m4 b/package/common/linux/openintra/starter-tabelle.desktop.m4
+new file mode 100644
+index 000000000..d1e2504a0
+--- /dev/null
++++ b/package/common/linux/openintra/starter-tabelle.desktop.m4
+@@ -0,0 +1,32 @@
++[Desktop Entry]
++Version=1.0
++Type=Application
++Name=M4_COMPANY_NAME Spreadsheet
++Name[de]=M4_COMPANY_NAME Tabelle
++GenericName=Spreadsheet
++GenericName[de]=Tabellenkalkulation
++Comment=Calculate and edit spreadsheets – M4_COMPANY_NAME OpenIntra Edition
++Comment[de]=Tabellen berechnen und bearbeiten – M4_COMPANY_NAME OpenIntra Edition
++Exec=/usr/bin/M4_DESKTOPEDITORS_EXEC --starter:cell %U
++Icon=M4_DESKTOPEDITORS_EXEC-tabelle
++Terminal=false
++StartupNotify=true
++Categories=Office;Spreadsheet;
++Keywords=Spreadsheet;Table;Calc;xlsx;xls;ods;csv;
++Keywords[de]=Tabelle;Tabellenkalkulation;Rechnen;xlsx;xls;ods;csv;
++MimeType=dnl
++application/vnd.ms-excel;dnl
++application/vnd.ms-excel.sheet.macroEnabled.12;dnl
++application/vnd.ms-excel.sheet.binary.macroEnabled.12;dnl
++application/vnd.ms-excel.template.macroEnabled.12;dnl
++application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;dnl
++application/vnd.openxmlformats-officedocument.spreadsheetml.template;dnl
++application/vnd.apple.numbers;dnl
++application/vnd.oasis.opendocument.spreadsheet;dnl
++application/vnd.oasis.opendocument.spreadsheet-flat-xml;dnl
++application/vnd.oasis.opendocument.spreadsheet-template;dnl
++application/vnd.sun.xml.calc;dnl
++application/wps-office.et;dnl
++application/wps-office.ett;dnl
++text/csv;dnl
++text/tab-separated-values;
+diff --git a/package/common/linux/openintra/starter-text.desktop.m4 b/package/common/linux/openintra/starter-text.desktop.m4
+new file mode 100644
+index 000000000..66e510c36
+--- /dev/null
++++ b/package/common/linux/openintra/starter-text.desktop.m4
+@@ -0,0 +1,37 @@
++[Desktop Entry]
++Version=1.0
++Type=Application
++Name=M4_COMPANY_NAME Text
++Name[de]=M4_COMPANY_NAME Text
++GenericName=Word Processor
++GenericName[de]=Textverarbeitung
++Comment=Write and edit text documents – M4_COMPANY_NAME OpenIntra Edition
++Comment[de]=Texte schreiben und bearbeiten – M4_COMPANY_NAME OpenIntra Edition
++Exec=/usr/bin/M4_DESKTOPEDITORS_EXEC --starter:word %U
++Icon=M4_DESKTOPEDITORS_EXEC-text
++Terminal=false
++StartupNotify=true
++Categories=Office;WordProcessor;
++Keywords=Text;Document;Letter;Writer;docx;doc;odt;rtf;
++Keywords[de]=Text;Dokument;Brief;Textverarbeitung;docx;doc;odt;rtf;
++MimeType=dnl
++application/msword;dnl
++application/msword-template;dnl
++application/vnd.ms-word.document.macroEnabled.12;dnl
++application/vnd.ms-word.template.macroEnabled.12;dnl
++application/vnd.openxmlformats-officedocument.wordprocessingml.document;dnl
++application/vnd.openxmlformats-officedocument.wordprocessingml.template;dnl
++application/vnd.apple.pages;dnl
++application/vnd.oasis.opendocument.text;dnl
++application/vnd.oasis.opendocument.text-flat-xml;dnl
++application/vnd.oasis.opendocument.text-template;dnl
++application/vnd.sun.xml.writer;dnl
++application/vnd.sun.xml.writer.template;dnl
++application/wps-office.wps;dnl
++application/wps-office.wpt;dnl
++application/x-hwp;dnl
++application/epub+zip;dnl
++application/rtf;dnl
++application/x-fictionbook+xml;dnl
++text/markdown;dnl
++text/plain;
+diff --git a/package/deb/template/control.m4 b/package/deb/template/control.m4
+index 8a21fd543..efeec1a78 100644
+--- a/package/deb/template/control.m4
++++ b/package/deb/template/control.m4
+@@ -36,9 +36,11 @@ Recommends: ttf-mscorefonts-installer, fonts-takao-gothic
+ ifelse(M4_COMPANY_NAME, Euro-Office,Suggests: M4_PACKAGE_NAME-help
+ ,)dnl
+ Conflicts: ifelse(M4_PACKAGE_EDITION, commercial, M4_PACKAGE_OPENSOURCE, M4_PACKAGE_COMMERCIAL)
+-Description: Desktop editors for text docs, spreadsheets, presentations, PDFs, and PDF forms.
+- Open-source office suite pack that comprises all the tools you need to
+- work offline with documents, spreadsheets, presentations, PDFs, and PDF forms.
++Description: Euro-Office OpenIntra Edition – text documents, spreadsheets, presentations
++ Open-source office suite to work offline with text documents, spreadsheets
++ and presentations. Modified version of Euro-Office (based on ONLYOFFICE):
++ PDF files are handed to OpenIntraPDF; one launcher each for Text,
++ Spreadsheet and Presentation.
+ 
+ ifelse(M4_COMPANY_NAME, Euro-Office,
+ Package: M4_PACKAGE_NAME-help
+diff --git a/package/deb/template/copyright.m4 b/package/deb/template/copyright.m4
+index 8787f5372..593d94499 100644
+--- a/package/deb/template/copyright.m4
++++ b/package/deb/template/copyright.m4
+@@ -35,3 +35,15 @@ ifelse(M4_PACKAGE_EDITION, commercial,
+  well as technical writing content are licensed under the terms of the
+  Creative Commons Attribution-ShareAlike 4.0 International. See the License
+  terms at https://creativecommons.org/licenses/by-sa/4.0/legalcode')
++
++Files: usr/share/icons/hicolor/scalable/apps/*-text.svg
++ usr/share/icons/hicolor/scalable/apps/*-tabelle.svg
++ usr/share/icons/hicolor/scalable/apps/*-praesentation.svg
++Copyright: 2026, Jan Günther <jg@linxpress.de>
++License: Apache-2.0
++ OpenIntra-Dokumentsymbole (Text, Tabelle, Präsentation), unverändert
++ übernommen aus OpenIntraHub, für die Starter der OpenIntra Edition.
++ .
++ Licensed under the Apache License, Version 2.0. On Debian systems, the full
++ text of the Apache License 2.0 can be found in
++ /usr/share/common-licenses/Apache-2.0.
+-- 
+2.47.3
+

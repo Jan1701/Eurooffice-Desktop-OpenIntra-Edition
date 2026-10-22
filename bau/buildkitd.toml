@@ -1,0 +1,10 @@
+# Euro-Office OpenIntra: BuildKit-GC so, dass Cache-Mounts (ccache, build-cache-desktop mit V8/Qt/CEF)
+# zwischen den Stufen erhalten bleiben. Zustand liegt im Volume buildx_buildkit_eo0_state unter /srv/bau/docker.
+[worker.oci]
+  gc = true
+  [[worker.oci.gcpolicy]]
+    all = true
+    keepDuration = "2160h"
+    reservedSpace = "150GB"
+    maxUsedSpace = "200GB"
+    minFreeSpace = "40GB"

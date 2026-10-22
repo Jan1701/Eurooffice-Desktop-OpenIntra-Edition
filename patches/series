@@ -1,0 +1,12 @@
+# Euro-Office OpenIntra Edition – Patchsatz (Reihenfolge, je Repo mit "git am" anwenden)
+# Upstream-Stand: Release-Tag v9.3.5-2 (seit 15.10.2026), alle Repos siehe bau/STAND.txt
+# Anwenden: vorbereiten.sh <zielordner> <stufe>    (1 | 2 | 3a)
+#
+# Stufe 1 – unveränderter Bau, nur Bauweg
+DesktopEditors/0001-nur-deb-packen.patch
+# Stufe 2 – PDF an OpenIntraPDF, PDF/Formulare raus aus Euro-Office
+desktop-apps/0001-pdf-an-openintrapdf.patch
+desktop-apps/0002-pdf-nicht-mehr-beanspruchen.patch
+desktop-apps/0003-formular-einstiege-entfernen.patch
+# Stufe 3a – Starter Text/Tabelle/Präsentation mit OpenIntra-Symbolen
+desktop-apps/0004-starter-text-tabelle-praesentation.patch
