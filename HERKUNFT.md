@@ -16,6 +16,14 @@ anzugeben; sie ist kein Produkt dieser Projekte.
 
 Grafiken der Euro-Office-Oberfläche (Symbole, Illustrationen) stehen dort unter CC-BY-SA-4.0 und bleiben es.
 
+**Abspaltung von Euro-Office, Logo-Klausel:** Diese Edition ist eine Abspaltung (Fork) von Euro-Office. Die
+ONLYOFFICE-Lizenzdateien enthalten einen Zusatz, nach dem das ONLYOFFICE-Logo in der Oberfläche bleiben muss. Wie
+Euro-Office folgen wir der Auslegung der Free Software Foundation: Dieser Zusatz ist keine zulässige Zusatzbedingung
+nach §7 AGPL, sondern eine weitere Einschränkung, die nach §7 Abs. 4 entfernt werden darf. Die Edition zeigt deshalb
+kein ONLYOFFICE-Logo. Der Zusatz nach §7(e) (keine Rechte an den Marken) bleibt beachtet: Die Marke ONLYOFFICE steht
+nur als Herkunftsangabe, nie im Programmnamen oder in Symbolen. Der Name „Euro-Office OpenIntra Edition“ nennt
+Euro-Office als Grundlage; der Hinweis oben stellt klar, dass die Edition nicht vom Euro-Office-Projekt stammt.
+
 ## Änderungen dieser Edition
 
 Alle Änderungen gegenüber Euro-Office liegen als Patches in `patches/` (Urheber, Datum und Zweck stehen im Kopf jedes
