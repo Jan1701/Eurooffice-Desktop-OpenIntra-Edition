@@ -1,7 +1,7 @@
-From 514c8ac03b7ffd611333f504902a51beeb47ae15 Mon Sep 17 00:00:00 2001
+From 2f9324fbb22e97036c3e264843dee8364991428e Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
 Date: Fri, 23 Oct 2026 20:41:18 +0200
-Subject: [PATCH] OpenIntra Edition: Themes OpenIntra hell und dunkel
+Subject: [PATCH 5/6] OpenIntra Edition: Themes OpenIntra hell und dunkel
  mitliefern
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -19,9 +19,9 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01DCjZib1MnhNsgV4svMwp3g
 ---
  package/Makefile                              |   3 +
- .../openintra/uithemes/openintra-dunkel.json  | 287 ++++++++++++++++++
- .../openintra/uithemes/openintra-hell.json    | 285 +++++++++++++++++
- 3 files changed, 575 insertions(+)
+ .../openintra/uithemes/openintra-dunkel.json  | 293 ++++++++++++++++++
+ .../openintra/uithemes/openintra-hell.json    | 291 +++++++++++++++++
+ 3 files changed, 587 insertions(+)
  create mode 100644 package/common/linux/openintra/uithemes/openintra-dunkel.json
  create mode 100644 package/common/linux/openintra/uithemes/openintra-hell.json
 
@@ -41,10 +41,10 @@ index bf9f3c808..8a508261c 100644
  	cp -f $(BRANDING_DIR)/common/license/$(PACKAGE_EDITION)/LICENSE.txt \
 diff --git a/package/common/linux/openintra/uithemes/openintra-dunkel.json b/package/common/linux/openintra/uithemes/openintra-dunkel.json
 new file mode 100644
-index 000000000..3f10a44d6
+index 000000000..1fe67d6bf
 --- /dev/null
 +++ b/package/common/linux/openintra/uithemes/openintra-dunkel.json
-@@ -0,0 +1,287 @@
+@@ -0,0 +1,293 @@
 +{
 + "id": "theme-openintra-dunkel",
 + "name": "OpenIntra dunkel",
@@ -329,15 +329,21 @@ index 000000000..3f10a44d6
 +  "icon-red": "#fca5a5",
 +  "icon-success": "#78b588",
 +  "highlight-comment-hover": "#2f3741",
-+  "highlight-comment-pressed": "#4a5666"
++  "highlight-comment-pressed": "#4a5666",
++  "tab-editor-theme-type": "dark",
++  "tab-simple-active-text": "#e4eaf1",
++  "tab-default-active-text": "#e4eaf1",
++  "tab-active-background": "#202733",
++  "tab-simple-active-background": "#202733",
++  "tab-default-active-background": "#202733"
 + }
 +}
 diff --git a/package/common/linux/openintra/uithemes/openintra-hell.json b/package/common/linux/openintra/uithemes/openintra-hell.json
 new file mode 100644
-index 000000000..2e6427c9d
+index 000000000..aeac506ab
 --- /dev/null
 +++ b/package/common/linux/openintra/uithemes/openintra-hell.json
-@@ -0,0 +1,285 @@
+@@ -0,0 +1,291 @@
 +{
 + "id": "theme-openintra-hell",
 + "name": "OpenIntra hell",
@@ -620,7 +626,13 @@ index 000000000..2e6427c9d
 +  "icon-blue-secondary": "#dbedf4",
 +  "icon-red": "#ef4444",
 +  "highlight-comment-hover": "#f2f3f4",
-+  "highlight-comment-pressed": "#eff7fb"
++  "highlight-comment-pressed": "#eff7fb",
++  "tab-editor-theme-type": "light",
++  "tab-simple-active-text": "#172536",
++  "tab-default-active-text": "#172536",
++  "tab-active-background": "#ffffff",
++  "tab-simple-active-background": "#ffffff",
++  "tab-default-active-background": "#ffffff"
 + }
 +}
 -- 

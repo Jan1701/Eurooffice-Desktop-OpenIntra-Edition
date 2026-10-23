@@ -161,6 +161,15 @@ def theme(basis, art):
         if k not in farben:
             del gesetzt[k]  # nichts erfinden, was Euro-Office nicht kennt
     farben.update(gesetzt)
+    # Werte nur der Desktop-App (cthemes.cpp, map_names), die das Web-CSS nicht kennt. Fehlt
+    # tab-editor-theme-type, nimmt sie „dark“ an und schreibt weiße Schrift auf den hellen
+    # Dokumentreiter (oih-dev-03, 23.10.2026).
+    farben.update({
+        "tab-editor-theme-type": "light" if art == "hell" else "dark",
+        "tab-simple-active-text": o["text"], "tab-default-active-text": o["text"],
+        "tab-active-background": o["paneel"], "tab-simple-active-background": o["paneel"],
+        "tab-default-active-background": o["paneel"],
+    })
     return farben
 
 

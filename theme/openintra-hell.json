@@ -280,6 +280,12 @@
   "icon-blue-secondary": "#dbedf4",
   "icon-red": "#ef4444",
   "highlight-comment-hover": "#f2f3f4",
-  "highlight-comment-pressed": "#eff7fb"
+  "highlight-comment-pressed": "#eff7fb",
+  "tab-editor-theme-type": "light",
+  "tab-simple-active-text": "#172536",
+  "tab-default-active-text": "#172536",
+  "tab-active-background": "#ffffff",
+  "tab-simple-active-background": "#ffffff",
+  "tab-default-active-background": "#ffffff"
  }
 }
