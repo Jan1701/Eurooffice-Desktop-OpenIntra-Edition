@@ -4,10 +4,11 @@
 #   vorbereiten.sh <zielordner> [stufe]
 #   stufe 1  = Pin 77da4ef + Bau-Patches (DesktopEditors/)
 #   stufe 2  = + PDF an OpenIntraPDF, PDF/Formulare aus Euro-Office (desktop-apps/0001–0003)
-#   stufe 3a = + Starter Text/Tabelle/Präsentation (desktop-apps/0004 ff.)
+#   stufe 3a = + Starter Text/Tabelle/Präsentation (desktop-apps/0004)
+#   stufe 3b = + OpenIntra-Themes hell/dunkel (desktop-apps/0005 ff.)
 # Braucht nur den Spiegel unter quellen/git und den Patchsatz unter patches/ – kein Netz.
 set -euo pipefail
-ZIEL=${1:?Zielordner fehlt}; STUFE=${2:-3a}
+ZIEL=${1:?Zielordner fehlt}; STUFE=${2:-3b}
 ROOT=$(cd "$(dirname "$0")" && pwd)
 Q=$ROOT/quellen/git; P=$ROOT/patches
 PIN=$(awk '/^DesktopEditors /{print $2}' "$ROOT/quellen/STAND.txt")
@@ -31,7 +32,8 @@ anwenden DesktopEditors '00[0-9][0-9]-*.patch'
 case $STUFE in
   1) ;;
   2) anwenden desktop-apps '000[1-3]-*.patch' ;;
-  3a) anwenden desktop-apps '00[0-9][0-9]-*.patch' ;;
+  3a) anwenden desktop-apps '000[1-4]-*.patch' ;;
+  3b) anwenden desktop-apps '00[0-9][0-9]-*.patch' ;;
   *) echo "unbekannte Stufe $STUFE" >&2; exit 1 ;;
 esac
 git submodule status
