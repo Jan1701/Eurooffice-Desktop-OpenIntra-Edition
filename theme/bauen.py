@@ -15,9 +15,11 @@ Grundlage sind die modernen Euro-Office-Themes „theme-white“/„theme-night�
 (abgesetzte, gerundete Karte für die Befehlsleiste). Ein eigenes Theme bekommt NUR seine
 eigene Klasse am <body> – was es nicht setzt, fiele auf den alten flachen
 Grundstil zurück. Deshalb übernimmt es deren kompletten Wertesatz und legt
-die OpenIntra-Farben (wie in OpenIntraPDF) darüber:
+die OpenIntra-Farben darüber (23.10.2026: dieselben wie in OpenIntraHub):
+  - Flächen, Linien, Text: die Farben von OpenIntraPDF,
   - neutrale Grautöne → Schiefer gleicher Helligkeit,
-  - die Euro-Office-Blautöne → der OpenIntra-Akzent,
+  - Akzent und Blautöne → die Palette der OpenIntra-Primärfarbe #00c7fc, in
+    denselben Stufen wie das Werkzeugband von OpenIntraHub,
   - Kopf, Paneele, Hover, Linien, Text, Lesefläche, Schatten ausdrücklich.
 
 Aufruf nach einem Euro-Office-Update (Werte aus dem übersetzten CSS eines
@@ -32,17 +34,38 @@ from pathlib import Path
 
 HIER = Path(__file__).resolve().parent
 
-# OpenIntraPDF-Farben (source/core/frontend/src/openintrapdf/openintrapdf.css).
+# Palette der OpenIntra-Primärfarbe #00c7fc, wie OpenIntraHub sie rechnet (in
+# OKLab entlang der Helligkeitskurve von Tailwinds blue; Stufe 600 ist
+# abgedunkelt, damit weiße Schrift lesbar bleibt). OpenIntraHub prüft diese
+# Werte gegen seine eigene Rechnung.
+PALETTE = {50: "#eff7fb", 100: "#dbedf4", 200: "#bfdfed", 300: "#95cce3", 400: "#59b2d4", 500: "#0099c2",
+           600: "#0080a4", 700: "#006e8d", 800: "#005a74", 900: "#004c63", 950: "#003040"}
+
+# Flächen, Linien und Text: wie in OpenIntraPDF.
 OPDF = {
     "hell": {"app": "#f4f6f8", "paneel": "#ffffff", "lese": "#e3e8ee", "text": "#172536",
-             "akzent": "#225fc4", "linie": "#d2dae4", "gedaempft": "#5b6b7d", "weich": "#eaf1fc",
+             "linie": "#d2dae4", "gedaempft": "#5b6b7d",
              "schatten": "0 2px 10px rgba(20, 40, 59, 0.16)"},
     "dunkel": {"app": "#171c24", "paneel": "#202733", "lese": "#11161d", "text": "#e4eaf1",
-               "akzent": "#8cb6ff", "linie": "#3a4658", "gedaempft": "#b0bdce", "weich": "#293951",
+               "linie": "#3a4658", "gedaempft": "#b0bdce",
                "schatten": "0 2px 12px rgba(0, 0, 0, 0.45)"},
 }
-# Gefüllte Knöpfe im Dunkeln: #8cb6ff trägt keine weiße Schrift, dafür das OIH-Primärblau.
-KNOPF_DUNKEL = "#3b82f6"
+
+
+def mischen(oben, unten, anteil):
+    """oben mit Deckkraft anteil über unten, wie rgb(… / anteil) im Browser."""
+    return hexa(*(anteil * a + (1 - anteil) * b for a, b in zip(rgb(oben), rgb(unten))))
+
+
+# Akzent und Hover wie im Werkzeugband von OpenIntraHub: hell Stufe 600 auf Stufe 50, dunkel
+# Stufe 400 auf Stufe 900 zu 55 % über dem Paneel. Gefüllte Knöpfe tragen bei
+# Euro-Office weiße Schrift (text-contrast-background), deshalb in beiden Arten
+# Stufe 600 (4,5 : 1), beim Überfahren und Drücken dunkler.
+AKZENT = {
+    "hell": {"akzent": PALETTE[600], "weich": PALETTE[50]},
+    "dunkel": {"akzent": PALETTE[400], "weich": None},  # unten aus 900 und dem Paneel
+}
+KNOPF = {"knopf": PALETTE[600], "knopf-hover": PALETTE[700], "knopf-gedrueckt": PALETTE[800]}
 
 
 def block(css, selektor):
@@ -82,28 +105,36 @@ def ist_blau(hexwert):
     return s > 0.3 and 195 <= h * 360 <= 235
 
 
-def akzentfamilie(hexwert, akzent):
-    """Euro-Office-Blau → unser Akzent; Helligkeit des Originals bleibt (hell/dunkel abgestuft)."""
-    _, l_alt, _ = colorsys.rgb_to_hls(*rgb(hexwert))
-    h, l_akz, s = colorsys.rgb_to_hls(*rgb(akzent))
-    # Werte nahe am Hauptton werden genau der Akzent, hellere/dunklere Abstufungen behalten ihren Abstand.
-    l = l_akz if abs(l_alt - 0.5) < 0.12 else l_alt
-    return hexa(*colorsys.hls_to_rgb(h, l, s))
+def leuchtdichte(hexwert):
+    """Relative Leuchtdichte nach WCAG."""
+    lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb(hexwert)]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
 
 
-def umfaerben(wert, akzent):
+def akzentfamilie(hexwert):
+    """Euro-Office-Blau → die Stufe der OpenIntra-Palette mit der nächsten Helligkeit.
+
+    So bleibt jede Abstufung (Auswahl, Hover, Rahmen) so hell oder dunkel wie bei
+    Euro-Office, steht aber in genau den Tönen, die auch OpenIntraHub zeigt.
+    """
+    soll = leuchtdichte(hexwert)
+    return min(PALETTE.values(), key=lambda p: abs(leuchtdichte(p) - soll))
+
+
+def umfaerben(wert):
     def ersetze(m):
         farbe = m.group(0)
         if ist_blau(farbe):
-            return akzentfamilie(farbe, akzent)
+            return akzentfamilie(farbe)
         return schiefer(farbe) or farbe
     return re.sub(r"#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b", ersetze, wert)
 
 
 def theme(basis, art):
-    o = OPDF[art]
-    farben = {k: umfaerben(v.strip(), o["akzent"]) for k, v in basis.items()}
-    knopf = o["akzent"] if art == "hell" else KNOPF_DUNKEL
+    o = dict(OPDF[art], **AKZENT[art])
+    if o["weich"] is None:
+        o["weich"] = mischen(PALETTE[900], o["paneel"], 0.55)
+    farben = {k: umfaerben(v.strip()) for k, v in basis.items()}
     gesetzt = {
         # Kopfzeile über der Befehlsleiste in allen fünf Editoren: Programmfläche statt Editorfarbe.
         **{f"toolbar-header-{e}": o["app"] for e in ("document", "spreadsheet", "presentation", "pdf", "visio")},
@@ -113,7 +144,9 @@ def theme(basis, art):
         "highlight-button-hover": o["weich"], "highlight-header-button-hover": o["weich"],
         "border-toolbar": o["linie"], "border-divider": o["linie"],
         "text-normal": o["text"], "text-toolbar-header": o["text"], "text-secondary": o["gedaempft"],
-        "background-accent-button": knopf, "background-primary-dialog-button": knopf,
+        "background-accent-button": KNOPF["knopf"], "background-primary-dialog-button": KNOPF["knopf"],
+        "highlight-primary-dialog-button-hover": KNOPF["knopf-hover"],
+        "highlight-primary-dialog-button-pressed": KNOPF["knopf-gedrueckt"],
         "border-control-focus": o["akzent"], "border-fill-input-focused": o["akzent"],
         "text-link": o["akzent"], "text-link-hover": o["akzent"], "text-link-active": o["akzent"],
         "shadow-toolbar": o["schatten"],
