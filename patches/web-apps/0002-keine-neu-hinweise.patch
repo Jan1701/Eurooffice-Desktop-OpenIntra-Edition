@@ -1,0 +1,40 @@
+From d874fd4e1911efdf24da4e16198a41a1fd173fc8 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
+Date: Fri, 23 Oct 2026 22:44:51 +0200
+Subject: [PATCH] OpenIntra Edition: keine Neu-Hinweise in der Desktop-App
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Beim ersten Start jedes Editors legte Euro-Office „Neu“-Hinweise über die
+Arbeitsfläche (Mehrseitige Ansicht, Format, GIF-Wiedergabe …). Sie beschreiben
+Änderungen gegenüber älteren Euro-Office-Fassungen, die Benutzer der Edition nie
+gesehen haben, und kommen zum Teil unübersetzt (oih-dev-03, 23.10.2026).
+In der Desktop-App (window.AscDesktopEditor) gilt featuresTips jetzt als aus.
+
+Teil des Patchsatzes der Euro-Office OpenIntra Edition (Stufe 3b).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01DCjZib1MnhNsgV4svMwp3g
+---
+ apps/common/main/lib/controller/LayoutManager.js | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/apps/common/main/lib/controller/LayoutManager.js b/apps/common/main/lib/controller/LayoutManager.js
+index 84661130e6..703b969140 100644
+--- a/apps/common/main/lib/controller/LayoutManager.js
++++ b/apps/common/main/lib/controller/LayoutManager.js
+@@ -641,6 +641,10 @@ Common.UI.FeaturesManager = new(function() {
+     };
+ 
+     var _isFeatureEnabled = function(name, force) {
++        // OpenIntra Edition: no "New" tips in the desktop app. They describe changes against
++        // older Euro-Office versions, some are untranslated, and they cover the work area
++        // on the first start of every editor.
++        if (name === 'featuresTips' && !!(window.desktop || window.AscDesktopEditor)) return false;
+         if (!(_licensed || force) || !_config) return true;
+ 
+         return _config[name]!==false;
+-- 
+2.47.3
+
