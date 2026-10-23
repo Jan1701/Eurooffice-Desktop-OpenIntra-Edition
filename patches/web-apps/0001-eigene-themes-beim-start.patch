@@ -1,4 +1,4 @@
-From 3edd10a48619a319176ca5d8b46f6cae027c488b Mon Sep 17 00:00:00 2001
+From 893f7d91da6d8a56d9a898286e1514bc2d99e3d6 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
 Date: Fri, 23 Oct 2026 21:08:27 +0200
 Subject: [PATCH] =?UTF-8?q?OpenIntra=20Edition:=20eigene=20Themes=20beim?=
@@ -8,59 +8,91 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-Drei Stellen, damit ein mitgeliefertes Theme (Desktop-App: uithemes/) vom
-ersten Start an so aussieht wie gewählt:
+Damit ein mitgeliefertes Theme (Desktop-App: uithemes/) vom ersten Start an so
+aussieht wie gewählt, auch hell/dunkel nach dem System:
 
-- Themes.js: check_launched_custom_theme() schrieb für ein eigenes Theme nur
-  die Klassen, nie die Farben (das tat nur apply_theme() beim Umschalten).
-  Der Editor fiel auf den alten Grundstil zurück und speicherte dessen Farben
-  als Theme. Jetzt schreibt er die Farben auch beim Start.
-- desktopinit.js: Die Desktop-App schickt localthemes als Liste
-  (CThemes::localThemesToJson), gesucht wurde wie in einem Objekt nach id.
-- themeinit.js: Liefert die App „OpenIntra hell“ und „OpenIntra dunkel“ mit,
-  löst „wie System“ auf sie auf statt auf Euro-Office-Weiß/-Nacht (wie die
-  Desktop-App selbst, Patch desktop-apps 0006).
+- Themes.js: write_custom_colors() schreibt die Farben eines eigenen Themes,
+  bisher tat das nur apply_theme() beim Umschalten. init() liest die lokalen
+  Themes der Desktop-App sofort ein statt erst bei document:ready – sonst traf
+  isDarkTheme() bei „wie System“ einen leeren Eintrag und das Dokument ließ sich
+  nicht öffnen. Selektor :root body.<id>, damit im Dunkeln nicht die eingebaute
+  Regel :root .theme-type-dark gewinnt. Gespeicherte Farben werden erneuert.
+- desktopinit.js: Die Desktop-App schickt localthemes als Liste, gesucht wurde
+  wie in einem Objekt nach id.
+- themeinit.js: Liefert die App OpenIntra hell und dunkel mit, löst „wie System“
+  auf sie auf (wie die Desktop-App, Patch desktop-apps 0006).
+
+Am Notebook oih-dev-03 hell und dunkel geprüft.
 
 Teil des Patchsatzes der Euro-Office OpenIntra Edition (Stufe 3b).
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01DCjZib1MnhNsgV4svMwp3g
 ---
- apps/common/main/lib/controller/Themes.js | 18 +++++++++++++++++-
- apps/common/main/lib/util/desktopinit.js  |  8 ++++++--
- apps/common/main/lib/util/themeinit.js    | 13 +++++++++++++
- 3 files changed, 36 insertions(+), 3 deletions(-)
+ apps/common/main/lib/controller/Themes.js | 33 ++++++++++++++++++++++-
+ apps/common/main/lib/util/desktopinit.js  |  8 ++++--
+ apps/common/main/lib/util/themeinit.js    | 13 +++++++++
+ 3 files changed, 51 insertions(+), 3 deletions(-)
 
 diff --git a/apps/common/main/lib/controller/Themes.js b/apps/common/main/lib/controller/Themes.js
-index 1341a07438..0b9fc460e3 100644
+index 1341a07438..cefe2d157d 100644
 --- a/apps/common/main/lib/controller/Themes.js
 +++ b/apps/common/main/lib/controller/Themes.js
-@@ -293,8 +293,24 @@ define([
+@@ -240,6 +240,24 @@ define([
+             }
+         }
+ 
++        // OpenIntra Edition: write the colors of a custom theme (local or from themes.json) once.
++        // apply_theme() did this on a switch only; at start-up a custom theme got its classes but
++        // no colors, the editor fell back to the old base style and stored those colors as the theme.
++        let custom_colors_written = false;
++        const write_custom_colors = function (theme_id) {
++            const t = themes_map[theme_id];
++            if ( t && !!t.src && !!t.src.colors ) {
++                // ":root body.<id>" (0,2,1): for dark themes the built-in ":root .theme-type-dark"
++                // (0,2,0, the old Euro-Office dark) won against ":root .<id>" (as in OpenIntraHub).
++                write_theme_css(t.src.id, create_colors_css(t.src.id, t.src.colors).replace(':root .', ':root body.'));
++                normalize_theme_icons(t);
++                delete t.src;
++                custom_colors_written = true;
++            }
++            if ( t && !document.body.classList.contains(theme_id) )
++                document.body.classList.add(theme_id);
++        };
++
+         const normalize_theme_icons = t => {
+             if ( t.src && t.src.icons ) {
+                 !t.icons && (t.icons = {});
+@@ -293,8 +311,12 @@ define([
                  document.body.classList.add(theme_id, 'theme-type-' + themes_map[theme_id].type);
              }
  
-+            // OpenIntra Edition: a custom theme (local or from themes.json) got only its classes
-+            // at start-up, never its colors -- those were written by apply_theme() on a switch only.
-+            // The editor fell back to the old base style and then stored those colors as the theme.
-+            // Stored colors are refreshed too, they may stem from such a start.
-+            const launched = themes_map[theme_id];
-+            let colors_written = false;
-+            if ( launched && !!launched.src && !!launched.src.colors ) {
-+                write_theme_css(launched.src.id, create_colors_css(launched.src.id, launched.src.colors));
-+                normalize_theme_icons(launched);
-+                delete launched.src;
-+                colors_written = true;
-+
-+                if ( !document.body.classList.contains(theme_id) )
-+                    document.body.classList.add(theme_id);
-+            }
++            // OpenIntra Edition: colors of a custom theme (see write_custom_colors); the stored
++            // colors are refreshed too, they may stem from a start without them.
++            write_custom_colors(theme_id);
 +
              const s = Common.localStorage.getItem('ui-theme');
 -            if (!s || get_ui_theme_name(s) !== theme_id) {
-+            if (!s || get_ui_theme_name(s) !== theme_id || colors_written) {
++            if (!s || get_ui_theme_name(s) !== theme_id || custom_colors_written) {
                  var theme_obj = {
                      id: theme_id,
                      type: themes_map[theme_id].type,
+@@ -475,6 +497,15 @@ define([
+ 
+                 this.api = api;
+ 
++                // OpenIntra Edition: the desktop app knows its local themes from the start
++                // (RendererProcessVariable.localthemes). Read them now, not only on document:ready:
++                // with "like system" resolving to a local theme, isDarkTheme() met an empty entry
++                // during loading and the document failed to open.
++                if ( Common.Controllers.Desktop.isActive() && Common.Controllers.Desktop.localThemes() ) {
++                    parse_themes_object({'themes': Common.Controllers.Desktop.localThemes()});
++                    write_custom_colors(window.uitheme.relevant_theme_id());
++                }
++
+                 const theme_id = window.uitheme.relevant_theme_id();
+                 if ( window.uitheme.type && themes_map[theme_id] &&
+                         window.uitheme.type !== themes_map[theme_id].type )
 diff --git a/apps/common/main/lib/util/desktopinit.js b/apps/common/main/lib/util/desktopinit.js
 index d540910b18..801e8c0ccc 100644
 --- a/apps/common/main/lib/util/desktopinit.js
