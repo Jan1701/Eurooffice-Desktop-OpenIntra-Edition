@@ -10,5 +10,6 @@ desktop-apps/0002-pdf-nicht-mehr-beanspruchen.patch
 desktop-apps/0003-formular-einstiege-entfernen.patch
 # Stufe 3a – Starter Text/Tabelle/Präsentation mit OpenIntra-Symbolen
 desktop-apps/0004-starter-text-tabelle-praesentation.patch
-# Stufe 3b – OpenIntra-Themes hell/dunkel mitliefern (aus theme/, Vorgabe setzt das OS)
+# Stufe 3b – OpenIntra-Themes hell/dunkel mitliefern (aus theme/), „wie System“ folgt ihnen
 desktop-apps/0005-themes-openintra-hell-dunkel.patch
+desktop-apps/0006-wie-system-folgt-openintra.patch

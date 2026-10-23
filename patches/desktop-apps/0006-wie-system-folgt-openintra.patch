@@ -1,0 +1,93 @@
+From 89da7b8e21c28ce35f6424e12f35ce27ea259f2f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
+Date: Fri, 23 Oct 2026 20:48:24 +0200
+Subject: [PATCH] =?UTF-8?q?OpenIntra=20Edition:=20=E2=80=9EWie=20System?=
+ =?UTF-8?q?=E2=80=9C=20folgt=20OpenIntra=20hell=20und=20dunkel?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Liefert die Edition die Themes OpenIntra hell/dunkel mit (Patch 0005), wählt
+die Einstellung „wie System“ sie statt Euro-Office-Weiß/-Nacht. Schaltet das
+Betriebssystem zwischen hell und dunkel um (Portal-Einstellung color-scheme),
+zieht die App mit. Ohne die Theme-Dateien bleibt alles wie bei Euro-Office.
+
+- systemThemeId(): OpenIntra-Theme, wenn als lokales Theme vorhanden
+- setCurrent(): lokales Theme mit den Vorgaben als Grundlage laden; die
+  gespeicherte Einstellung bleibt „theme-system“
+- CThemes(): System-Theme nach dem Einlesen der lokalen Themes neu auflösen
+- themeActualId(): dieselbe Wahl an Editoren und Fenster melden
+
+Teil des Patchsatzes der Euro-Office OpenIntra Edition (Stufe 3b).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01DCjZib1MnhNsgV4svMwp3g
+---
+ win-linux/src/cthemes.cpp | 26 ++++++++++++++++++++++++--
+ 1 file changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/win-linux/src/cthemes.cpp b/win-linux/src/cthemes.cpp
+index 4926380b4..71459ce23 100644
+--- a/win-linux/src/cthemes.cpp
++++ b/win-linux/src/cthemes.cpp
+@@ -477,11 +477,18 @@ public:
+ //                    return current->fromJson(local_themes.at(id));
+                 }
+             } else {
+-                QString visual_theme_id = is_system_theme_dark ? THEME_DEFAULT_DARK_ID : THEME_DEFAULT_LIGHT_ID;
++                QString visual_theme_id = systemThemeId(is_system_theme_dark);
+                 if ( current->id() != visual_theme_id.toStdWString() ) {
+                     delete current;
+ 
+                     current = new CTheme;
++                    // OpenIntra Edition: local themes carry only "colors" and need the defaults
++                    if ( local_themes.find(visual_theme_id) != local_themes.end() ) {
++                        current->m_priv->setDefaultThemes(getDefault(NSTheme::ThemeType::ttDark), getDefault(NSTheme::ThemeType::ttLight));
++                        // no source_file here: the setting must stay "theme-system", not the file
++                        if ( !current->fromJson(local_themes.at(visual_theme_id).second) )
++                            return false;
++                    } else
+                     if ( !current->fromFile(rc_themes.at(visual_theme_id)) )
+                         return false;
+                 }
+@@ -496,6 +503,16 @@ public:
+         return true;
+     }
+ 
++    // OpenIntra Edition: "like system" follows OpenIntra light/dark when the edition
++    // ships them in uithemes/ (patch 0005), otherwise the Euro-Office defaults.
++    auto systemThemeId(bool dark) const -> QString
++    {
++        const QString oi_id = dark ? "theme-openintra-dunkel" : "theme-openintra-hell";
++        if ( local_themes.find(oi_id) != local_themes.end() )
++            return oi_id;
++        return dark ? THEME_DEFAULT_DARK_ID : THEME_DEFAULT_LIGHT_ID;
++    }
++
+     auto getDefault(NSTheme::ThemeType type) -> const CTheme * const
+     {
+         if ( type == NSTheme::ThemeType::ttDark ) {
+@@ -756,6 +773,11 @@ CThemes::CThemes()
+     : m_priv(new CThemes::CThemesPrivate(this))
+ {
+     m_priv->searchLocalThemes();
++
++    // OpenIntra Edition: at start-up the system theme was resolved before the local
++    // themes were known; resolve it again so it can pick OpenIntra light/dark.
++    if ( m_priv->current->isSystem() )
++        m_priv->setCurrent(THEME_ID_SYSTEM, true);
+ }
+ 
+ CThemes::~CThemes()
+@@ -825,7 +847,7 @@ auto CThemes::isThemeCurrent(const std::wstring& id) -> bool
+ auto CThemes::themeActualId(const std::wstring& id) const -> std::wstring
+ {
+     return WSTR(THEME_ID_SYSTEM) != id ? id :
+-        m_priv->is_system_theme_dark ? WSTR(THEME_DEFAULT_DARK_ID) : WSTR(THEME_DEFAULT_LIGHT_ID);
++        m_priv->systemThemeId(m_priv->is_system_theme_dark).toStdWString();
+ }
+ 
+ auto CThemes::contains(const QString& id) -> bool
+-- 
+2.47.3
+

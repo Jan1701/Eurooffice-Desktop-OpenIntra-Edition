@@ -5,7 +5,7 @@
 #   stufe 1  = Pin 77da4ef + Bau-Patches (DesktopEditors/)
 #   stufe 2  = + PDF an OpenIntraPDF, PDF/Formulare aus Euro-Office (desktop-apps/0001–0003)
 #   stufe 3a = + Starter Text/Tabelle/Präsentation (desktop-apps/0004)
-#   stufe 3b = + OpenIntra-Themes hell/dunkel (desktop-apps/0005 ff.)
+#   stufe 3b = + OpenIntra-Themes hell/dunkel, „wie System“ folgt ihnen (desktop-apps/0005 ff.)
 # Braucht nur den Spiegel unter quellen/git und den Patchsatz unter patches/ – kein Netz.
 set -euo pipefail
 ZIEL=${1:?Zielordner fehlt}; STUFE=${2:-3b}

@@ -3,4 +3,5 @@ d07f697ccead44a5a915a78e4a7cbd2ca8dae7b71822e0450395926b4dacf5fa  ./desktop-apps
 788ea44c2175d0b404e606c19fa6a661f408824c2c084c08e9186c05eb66e5a4  ./desktop-apps/0003-formular-einstiege-entfernen.patch
 bbcf9a906dd7ba8e1714750a33c3fb6b221100c9025d927426112c01eec759a5  ./desktop-apps/0004-starter-text-tabelle-praesentation.patch
 4bf9db1ea01440d5942c6b2eaed10f0b2617bba6da829cd06b2e9cad6d0e15c2  ./desktop-apps/0005-themes-openintra-hell-dunkel.patch
+fea8927a448b844c1438e2be56da72b378c4dc42f2d767482f682e5e25a72774  ./desktop-apps/0006-wie-system-folgt-openintra.patch
 31f9d7afc04c46cd59b2bf01b97b30378575c0f2cb84632a6d84f5bca7382a63  ./DesktopEditors/0001-nur-deb-packen.patch
