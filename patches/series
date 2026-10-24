@@ -16,3 +16,4 @@ desktop-apps/0006-wie-system-folgt-openintra.patch
 desktop-apps/0007-vorgaben-hell-dunkel-nicht-vertauschen.patch
 web-apps/0001-eigene-themes-beim-start.patch
 web-apps/0002-keine-neu-hinweise.patch
+web-apps/0003-wie-system-auch-im-offenen-editor.patch

@@ -1,0 +1,46 @@
+From 800867823c7d82947fea2f22e8272db4dfec812c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
+Date: Sat, 24 Oct 2026 10:33:34 +0200
+Subject: [PATCH] =?UTF-8?q?OpenIntra=20Edition:=20=E2=80=9EWie=20System?=
+ =?UTF-8?q?=E2=80=9C=20folgt=20dem=20System=20auch=20im=20offenen=20Editor?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Schaltet das Betriebssystem bei „wie System“ zwischen hell und dunkel um,
+meldet die Desktop-App das den offenen Editoren (renderervars:changed), und
+die rufen refreshTheme(true) auf. Das wirkte nur, wenn ui-theme-id
+gespeichert war, und das schreibt die App erst, wenn man in den
+Einstellungen selbst ein Theme wählt. Mit einem frischen Profil blieben
+offene Editoren deshalb in der alten Art, nur die Reiterleiste der App
+schaltete um. Betrifft auch die Euro-Office-Themes Weiß und Nacht.
+
+Am Notebook oih-dev-03 nachgewiesen (App dunkel, Editor blieb hell).
+
+Teil des Patchsatzes der Euro-Office OpenIntra Edition (Stufe 3b).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01DCjZib1MnhNsgV4svMwp3g
+---
+ apps/common/main/lib/controller/Themes.js | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/apps/common/main/lib/controller/Themes.js b/apps/common/main/lib/controller/Themes.js
+index 81ce7d36f8..2c84212720 100644
+--- a/apps/common/main/lib/controller/Themes.js
++++ b/apps/common/main/lib/controller/Themes.js
+@@ -473,7 +473,10 @@ define([
+             if ( force || Common.localStorage.getItem('ui-theme-id') != window.uitheme.id ) {
+                 let theme_id = Common.localStorage.getItem('ui-theme-id');
+ 
+-                if ( theme_id && (force && (theme_id = 'theme-system')) ) {
++                // OpenIntra Edition: force = the system switched light/dark while "like system" is set.
++                // The desktop app stores ui-theme-id only when a theme is picked in the settings, so
++                // with a fresh profile the editor never followed the system; do not require it.
++                if ( force && (theme_id = 'theme-system') ) {
+                     apply_theme.call(this, theme_id);
+                     Common.NotificationCenter.trigger('uitheme:changed', theme_id, caller);
+                 }
+-- 
+2.47.3
+
