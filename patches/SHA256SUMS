@@ -3,7 +3,8 @@ d07f697ccead44a5a915a78e4a7cbd2ca8dae7b71822e0450395926b4dacf5fa  ./desktop-apps
 788ea44c2175d0b404e606c19fa6a661f408824c2c084c08e9186c05eb66e5a4  ./desktop-apps/0003-formular-einstiege-entfernen.patch
 bbcf9a906dd7ba8e1714750a33c3fb6b221100c9025d927426112c01eec759a5  ./desktop-apps/0004-starter-text-tabelle-praesentation.patch
 8588ab46d3c8848782dde99ecaa0ecc91068d17df37a1b72356e30cc578e4f78  ./desktop-apps/0005-themes-openintra-hell-dunkel.patch
-ad88d3befbd7141bd1d38d8dbcebbd8dd8ed6507d92e70645df759be45eb98a8  ./desktop-apps/0006-wie-system-folgt-openintra.patch
+5c1cacfa5f4014afb6726b6bc66bcc0ecb5f092a87458532832ad0b18b4ccb1a  ./desktop-apps/0006-wie-system-folgt-openintra.patch
+60950834d50cbe107424e0917c8c6ec8d57e12f655e6c9a48114907439bb1870  ./desktop-apps/0007-vorgaben-hell-dunkel-nicht-vertauschen.patch
 31f9d7afc04c46cd59b2bf01b97b30378575c0f2cb84632a6d84f5bca7382a63  ./DesktopEditors/0001-nur-deb-packen.patch
-7bf1eafc2564b85a85d2304cf2a6ccd6bc37eb148c892153ba3051e9f929a06c  ./web-apps/0001-eigene-themes-beim-start.patch
+98f0ab886601e5e8e6c0324a55e4ba063eff853a10c11620fe2585777ba88549  ./web-apps/0001-eigene-themes-beim-start.patch
 8540084084019f4504bc3f6f47f8c38249f9d79028a5f371106a332a0a22df53  ./web-apps/0002-keine-neu-hinweise.patch

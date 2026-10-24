@@ -1,8 +1,8 @@
-From 8d6884f273fbb481d982c208b49a59634cfa86ce Mon Sep 17 00:00:00 2001
+From 73af28ef59a18fa5f3be5931a864ba432b0f2852 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
 Date: Fri, 23 Oct 2026 20:48:24 +0200
-Subject: [PATCH 6/6] =?UTF-8?q?OpenIntra=20Edition:=20=E2=80=9EWie=20Syste?=
- =?UTF-8?q?m=E2=80=9C=20folgt=20OpenIntra=20hell=20und=20dunkel?=
+Subject: [PATCH] =?UTF-8?q?OpenIntra=20Edition:=20=E2=80=9EWie=20System?=
+ =?UTF-8?q?=E2=80=9C=20folgt=20OpenIntra=20hell=20und=20dunkel?=
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -12,7 +12,8 @@ die Einstellung „wie System“ sie statt Euro-Office-Weiß/-Nacht. Schaltet da
 Betriebssystem zwischen hell und dunkel um (Portal-Einstellung color-scheme),
 zieht die App mit. Ohne die Theme-Dateien bleibt alles wie bei Euro-Office.
 
-- systemThemeId(): OpenIntra-Theme, wenn als lokales Theme vorhanden
+- systemThemeId(): OpenIntra hell/dunkel, wenn beide als lokale Themes
+  vorhanden sind (wie themeinit.js in web-apps), sonst Euro-Office
 - setCurrent(): lokales Theme mit den Vorgaben als Grundlage laden; die
   gespeicherte Einstellung bleibt „theme-system“
 - CThemes(): System-Theme nach dem Einlesen der lokalen Themes neu auflösen
@@ -23,11 +24,11 @@ Teil des Patchsatzes der Euro-Office OpenIntra Edition (Stufe 3b).
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01DCjZib1MnhNsgV4svMwp3g
 ---
- win-linux/src/cthemes.cpp | 26 ++++++++++++++++++++++++--
- 1 file changed, 24 insertions(+), 2 deletions(-)
+ win-linux/src/cthemes.cpp | 27 +++++++++++++++++++++++++--
+ 1 file changed, 25 insertions(+), 2 deletions(-)
 
 diff --git a/win-linux/src/cthemes.cpp b/win-linux/src/cthemes.cpp
-index 4926380b4..71459ce23 100644
+index 4926380b4..a5e3f0a8f 100644
 --- a/win-linux/src/cthemes.cpp
 +++ b/win-linux/src/cthemes.cpp
 @@ -477,11 +477,18 @@ public:
@@ -50,24 +51,25 @@ index 4926380b4..71459ce23 100644
                      if ( !current->fromFile(rc_themes.at(visual_theme_id)) )
                          return false;
                  }
-@@ -496,6 +503,16 @@ public:
+@@ -496,6 +503,17 @@ public:
          return true;
      }
  
 +    // OpenIntra Edition: "like system" follows OpenIntra light/dark when the edition
-+    // ships them in uithemes/ (patch 0005), otherwise the Euro-Office defaults.
++    // ships both in uithemes/ (patch 0005), otherwise the Euro-Office defaults. Both or
++    // none, as in web-apps (themeinit.js), so app and editors never disagree.
 +    auto systemThemeId(bool dark) const -> QString
 +    {
-+        const QString oi_id = dark ? "theme-openintra-dunkel" : "theme-openintra-hell";
-+        if ( local_themes.find(oi_id) != local_themes.end() )
-+            return oi_id;
++        if ( local_themes.find("theme-openintra-hell") != local_themes.end() &&
++                local_themes.find("theme-openintra-dunkel") != local_themes.end() )
++            return dark ? "theme-openintra-dunkel" : "theme-openintra-hell";
 +        return dark ? THEME_DEFAULT_DARK_ID : THEME_DEFAULT_LIGHT_ID;
 +    }
 +
      auto getDefault(NSTheme::ThemeType type) -> const CTheme * const
      {
          if ( type == NSTheme::ThemeType::ttDark ) {
-@@ -756,6 +773,11 @@ CThemes::CThemes()
+@@ -756,6 +774,11 @@ CThemes::CThemes()
      : m_priv(new CThemes::CThemesPrivate(this))
  {
      m_priv->searchLocalThemes();
@@ -79,7 +81,7 @@ index 4926380b4..71459ce23 100644
  }
  
  CThemes::~CThemes()
-@@ -825,7 +847,7 @@ auto CThemes::isThemeCurrent(const std::wstring& id) -> bool
+@@ -825,7 +848,7 @@ auto CThemes::isThemeCurrent(const std::wstring& id) -> bool
  auto CThemes::themeActualId(const std::wstring& id) const -> std::wstring
  {
      return WSTR(THEME_ID_SYSTEM) != id ? id :

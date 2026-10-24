@@ -1,0 +1,45 @@
+From 768f69c4fe0b40a8a750832eb007018564abd81e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
+Date: Sat, 24 Oct 2026 09:37:00 +0200
+Subject: [PATCH] OpenIntra Edition: Vorgaben hell und dunkel nicht vertauschen
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Lokale Themes (uithemes/, nur „colors“) erben fehlende Werte von
+Euro-Office-Weiß bzw. -Nacht. Alle Aufrufer übergeben
+setDefaultThemes(dunkel, hell), die Funktion nahm (hell, dunkel): Ein helles
+lokales Theme erbte die Werte von Nacht, ein dunkles die von Weiß. Sichtbar
+an tab-editor-theme-type (weiße Schrift auf hellem Dokumentreiter),
+logo-type, window-border, menu-text-item-disabled, button-normal-opacity und
+den Farben der Download-Liste. Eingebaute Themes bringen alle Werte selbst
+mit („values“) und sind nicht betroffen.
+
+Gefunden bei der Durchsicht von Patch 0006.
+
+Teil des Patchsatzes der Euro-Office OpenIntra Edition (Stufe 3b).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01DCjZib1MnhNsgV4svMwp3g
+---
+ win-linux/src/cthemes.cpp | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/win-linux/src/cthemes.cpp b/win-linux/src/cthemes.cpp
+index a5e3f0a8f..f582c89e1 100644
+--- a/win-linux/src/cthemes.cpp
++++ b/win-linux/src/cthemes.cpp
+@@ -306,7 +306,9 @@ public:
+ //        is_system = false;
+     }
+ 
+-    auto setDefaultThemes(const CTheme * const l, const CTheme * const d) -> void {
++    // OpenIntra Edition: every caller passes (dark, light); with (light, dark) here a local
++    // theme took the missing values from the opposite type.
++    auto setDefaultThemes(const CTheme * const d, const CTheme * const l) -> void {
+         defdark = d;
+         deflight = l;
+     }
+-- 
+2.47.3
+

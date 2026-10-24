@@ -1,4 +1,4 @@
-From 893f7d91da6d8a56d9a898286e1514bc2d99e3d6 Mon Sep 17 00:00:00 2001
+From 2dd4e269ce3c8842ec2d0c47059090cedb5b4546 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Jan=20G=C3=BCnther?= <jg@linxpress.de>
 Date: Fri, 23 Oct 2026 21:08:27 +0200
 Subject: [PATCH] =?UTF-8?q?OpenIntra=20Edition:=20eigene=20Themes=20beim?=
@@ -29,23 +29,23 @@ Teil des Patchsatzes der Euro-Office OpenIntra Edition (Stufe 3b).
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01DCjZib1MnhNsgV4svMwp3g
 ---
- apps/common/main/lib/controller/Themes.js | 33 ++++++++++++++++++++++-
+ apps/common/main/lib/controller/Themes.js | 34 ++++++++++++++++++++++-
  apps/common/main/lib/util/desktopinit.js  |  8 ++++--
  apps/common/main/lib/util/themeinit.js    | 13 +++++++++
- 3 files changed, 51 insertions(+), 3 deletions(-)
+ 3 files changed, 52 insertions(+), 3 deletions(-)
 
 diff --git a/apps/common/main/lib/controller/Themes.js b/apps/common/main/lib/controller/Themes.js
-index 1341a07438..cefe2d157d 100644
+index 1341a07438..fbab1c24b5 100644
 --- a/apps/common/main/lib/controller/Themes.js
 +++ b/apps/common/main/lib/controller/Themes.js
-@@ -240,6 +240,24 @@ define([
+@@ -252,6 +252,24 @@ define([
              }
-         }
+         };
  
 +        // OpenIntra Edition: write the colors of a custom theme (local or from themes.json) once.
 +        // apply_theme() did this on a switch only; at start-up a custom theme got its classes but
 +        // no colors, the editor fell back to the old base style and stored those colors as the theme.
-+        let custom_colors_written = false;
++        let custom_colors_written = false;  // since the last store in check_launched_custom_theme
 +        const write_custom_colors = function (theme_id) {
 +            const t = themes_map[theme_id];
 +            if ( t && !!t.src && !!t.src.colors ) {
@@ -60,9 +60,9 @@ index 1341a07438..cefe2d157d 100644
 +                document.body.classList.add(theme_id);
 +        };
 +
-         const normalize_theme_icons = t => {
-             if ( t.src && t.src.icons ) {
-                 !t.icons && (t.icons = {});
+         var parse_themes_object = function (obj) {
+             var curr_lang = Common.Locale.getCurrentLanguage(),
+                 theme_label;
 @@ -293,8 +311,12 @@ define([
                  document.body.classList.add(theme_id, 'theme-type-' + themes_map[theme_id].type);
              }
@@ -77,7 +77,15 @@ index 1341a07438..cefe2d157d 100644
                  var theme_obj = {
                      id: theme_id,
                      type: themes_map[theme_id].type,
-@@ -475,6 +497,15 @@ define([
+@@ -306,6 +328,7 @@ define([
+                     theme_obj.icons = themes_map[theme_id].icons;
+ 
+                 Common.localStorage.setItem('ui-theme', JSON.stringify(theme_obj));
++                custom_colors_written = false;
+             }
+         }
+ 
+@@ -475,6 +498,15 @@ define([
  
                  this.api = api;
  

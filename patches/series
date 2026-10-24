@@ -1,6 +1,6 @@
 # Euro-Office OpenIntra Edition – Patchsatz (Reihenfolge, je Repo mit "git am" anwenden)
 # Upstream-Stand: Release-Tag v9.3.5-2 (seit 15.10.2026), alle Repos siehe bau/STAND.txt
-# Anwenden: vorbereiten.sh <zielordner> <stufe>    (1 | 2 | 3a)
+# Anwenden: vorbereiten.sh <zielordner> <stufe>    (1 | 2 | 3a | 3b)
 #
 # Stufe 1 – unveränderter Bau, nur Bauweg
 DesktopEditors/0001-nur-deb-packen.patch
@@ -13,5 +13,6 @@ desktop-apps/0004-starter-text-tabelle-praesentation.patch
 # Stufe 3b – OpenIntra-Themes hell/dunkel mitliefern (aus theme/), „wie System“ folgt ihnen
 desktop-apps/0005-themes-openintra-hell-dunkel.patch
 desktop-apps/0006-wie-system-folgt-openintra.patch
+desktop-apps/0007-vorgaben-hell-dunkel-nicht-vertauschen.patch
 web-apps/0001-eigene-themes-beim-start.patch
 web-apps/0002-keine-neu-hinweise.patch
